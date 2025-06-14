@@ -12,7 +12,13 @@ export type DotNotation<
 			? (
 				| DotNotation<U, TAllowPlaceholder, `${TPrefix}${number}.`, [...TDepth, 1]>
 				| DotNotation<U, TAllowPlaceholder, `${TPrefix}`, [...TDepth, 1]>
-				| (TAllowPlaceholder extends true ? DotNotation<U, TAllowPlaceholder, `${TPrefix}$.`, [...TDepth, 1]> : never)
+				| (TAllowPlaceholder extends true
+					? (
+						| DotNotation<U, TAllowPlaceholder, `${TPrefix}$.`, [...TDepth, 1]>
+						| DotNotation<U, TAllowPlaceholder, `${TPrefix}$[${string}].`, [...TDepth, 1]>
+						| DotNotation<U, TAllowPlaceholder, `${TPrefix}$[].`, [...TDepth, 1]>
+					)
+					: never)
 			)
 			: T extends object
 				? {
@@ -40,9 +46,11 @@ export type DotPathValue<
 						? Key extends `${number}`
 							? DotPathValue<U, Rest, TAllowPlaceholder, [...TDepth, 1]>
 							: TAllowPlaceholder extends true
-								? Key extends `$`
+								? Key extends `$[]` | `$`
 									? DotPathValue<U, Rest, TAllowPlaceholder, [...TDepth, 1]>
-									: DotPathValue<U, `${Key}.${Rest}`, TAllowPlaceholder, [...TDepth, 1]>
+									: Key extends `$[${string}]`
+										? DotPathValue<U, Rest, TAllowPlaceholder, [...TDepth, 1]>
+										: DotPathValue<U, `${Key}.${Rest}`, TAllowPlaceholder, [...TDepth, 1]>
 								: DotPathValue<U, `${Key}.${Rest}`, TAllowPlaceholder, [...TDepth, 1]>
 						: never
 				: TPath extends keyof T
@@ -51,9 +59,11 @@ export type DotPathValue<
 						? TPath extends `${number}`
 							? U
 							: TAllowPlaceholder extends true
-								? TPath extends `$`
+								? TPath extends `$[]` | `$`
 									? U
-									: DotPathValue<U, TPath, TAllowPlaceholder, [...TDepth, 1]>
+									: TPath extends `$[${string}]`
+										? U
+										: DotPathValue<U, TPath, TAllowPlaceholder, [...TDepth, 1]>
 								: DotPathValue<U, TPath, TAllowPlaceholder, [...TDepth, 1]>
 						: never
 		: never;
