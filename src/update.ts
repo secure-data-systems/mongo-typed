@@ -82,5 +82,5 @@ export declare interface Update<TSchema> {
 	$rename?: Record<string, string>,
 	$set?: FieldsAndValues<TSchema, true>,
 	$setOnInsert?: FieldsAndValues<TSchema>,
-	$unset?: OnlyFieldsOfTypeDotNotation<TSchema, any, false, 1 | '' | true>
+	$unset?: OnlyFieldsOfTypeDotNotation<TSchema, any, false, 1 | '' | boolean>
 }
