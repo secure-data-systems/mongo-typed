@@ -5,9 +5,9 @@ import { Filter } from './filter.js';
 import { Identifiable, PartialButId } from './identifiable.js';
 import { EnhancedOmit } from './types.js';
 
-export declare type FieldsAndValues<TSchema> = Readonly<{
-	[P in DotNotation<EnhancedOmit<TSchema, '_id'>>]?:
-		DotPathValue<EnhancedOmit<TSchema, '_id'>, P> extends infer Value
+export declare type FieldsAndValues<TSchema, TAllowPlaceholder extends boolean = false> = Readonly<{
+	[P in DotNotation<EnhancedOmit<TSchema, '_id'>, TAllowPlaceholder>]?:
+		DotPathValue<EnhancedOmit<TSchema, '_id'>, P, TAllowPlaceholder> extends infer Value
 			? UnwrapArray<Value> extends infer Unwrapped
 				? Unwrapped extends Identifiable
 					? RewrapArray<Value, PartialButId<Unwrapped>>
@@ -35,7 +35,20 @@ export declare type PushOperator<T> = {
 	[P in DotNotation<T> as DotPathValue<T, P> extends ReadonlyArray<any> | undefined ? P : never]?:
 		NonNullable<DotPathValue<T, P>> extends ReadonlyArray<infer Item>
 			? Item extends Identifiable
-				? PartialButId<Item> | { '$each': PartialButId<Item>[] } : Item | { '$each': Item[] }
+			? PartialButId<Item> |
+			{
+				$each: PartialButId<Item>[],
+				$position?: number,
+				$slice?: number,
+				$sort?: -1 | 1 | Partial<Record<DotNotation<PartialButId<Item>>, -1 | 1>>
+			}
+			: Item |
+				{
+					$each: Item[],
+					$position?: number,
+					$slice?: number,
+					$sort?: Item extends object ? -1 | 1 | Partial<Record<DotNotation<Item>, -1 | 1>> : -1 | 1
+				}
 		: never;
 };
 
@@ -50,24 +63,24 @@ export declare type SetFields<T> = {
 
 export declare interface Update<TSchema> {
 	$addToSet?: SetFields<TSchema>,
-	$bit?: OnlyFieldsOfTypeDotNotation<TSchema, NumericType | undefined, {
+	$bit?: OnlyFieldsOfTypeDotNotation<TSchema, NumericType | undefined, true, {
 		and: IntegerType
 	} | {
 		or: IntegerType
 	} | {
 		xor: IntegerType
 	}>,
-	$currentDate?: OnlyFieldsOfTypeDotNotation<TSchema, Date, true | { $type: 'date' | 'timestamp' }>,
-	$inc?: OnlyFieldsOfTypeDotNotation<TSchema, NumericType | undefined>,
-	$max?: FieldsAndValues<TSchema>,
-	$min?: FieldsAndValues<TSchema>,
-	$mul?: OnlyFieldsOfTypeDotNotation<TSchema, NumericType | undefined>,
-	$pop?: OnlyFieldsOfTypeDotNotation<TSchema, ReadonlyArray<any> | undefined, -1 | 1>,
+	$currentDate?: OnlyFieldsOfTypeDotNotation<TSchema, Date, true, true | { $type: 'date' | 'timestamp' }>,
+	$inc?: OnlyFieldsOfTypeDotNotation<TSchema, NumericType | undefined, true, NumericType | undefined>,
+	$max?: FieldsAndValues<TSchema, true>,
+	$min?: FieldsAndValues<TSchema, true>,
+	$mul?: OnlyFieldsOfTypeDotNotation<TSchema, NumericType | undefined, true>,
+	$pop?: OnlyFieldsOfTypeDotNotation<TSchema, ReadonlyArray<any> | undefined, false, -1 | 1>,
 	$pull?: PullOperator<TSchema>,
 	$pullAll?: PullAllOperator<TSchema>,
 	$push?: PushOperator<TSchema>,
 	$rename?: Record<string, string>,
-	$set?: FieldsAndValues<TSchema>,
+	$set?: FieldsAndValues<TSchema, true>,
 	$setOnInsert?: FieldsAndValues<TSchema>,
-	$unset?: OnlyFieldsOfTypeDotNotation<TSchema, any, 1 | '' | true>
+	$unset?: OnlyFieldsOfTypeDotNotation<TSchema, any, false, 1 | '' | true>
 }
