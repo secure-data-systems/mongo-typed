@@ -1,4 +1,4 @@
-import { BsonType, BsonTypeAlias, NonObjectIdLikeDocument, RegExpOrString, WithId } from './bson-types.js';
+import { BsonType, BsonTypeAlias, RegExpOrString, WithId } from './bson-types.js';
 import { DotNotation, DotPathValue } from './dot-notation.js';
 import { EnhancedOmit } from './types.js';
 
@@ -29,7 +29,7 @@ export declare type FilterOperations<T> = T extends Record<string, any> ? {
 } : FilterOperators<T>;
 
 /** @public */
-export declare interface FilterOperators<TValue> extends NonObjectIdLikeDocument {
+export declare interface FilterOperators<TValue> {
 	$all?: ReadonlyArray<any>,
 	$bitsAllClear?: BitwiseFilter,
 	$bitsAllSet?: BitwiseFilter,
