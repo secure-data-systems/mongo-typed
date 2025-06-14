@@ -30,13 +30,6 @@ export declare type BsonTypeAlias = keyof typeof BSONType;
 
 export declare type IntegerType = bigint | number;
 
-/**
- * A type that extends Document but forbids anything that "looks like" an object id.
- */
-export declare type NonObjectIdLikeDocument = Document & {
-	[key in keyof ObjectIdLike]?: never;
-};
-
 export declare type NumericType = IntegerType;
 
 export declare interface ObjectIdLike {
