@@ -84,8 +84,8 @@ TypeScript developers working with MongoDB often find themselves wishing for dee
 ## Status
 
 - ✅ Filter types – stable
-- ✅ Update types – stable
-- 🧪 Aggregation types – in progress
+- ✅ Update types – in progress
+- 🧪 Aggregation types – coming soon
 - 🔄 Actively maintained
 
 ## Contributing
