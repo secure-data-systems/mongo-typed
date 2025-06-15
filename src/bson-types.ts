@@ -1,6 +1,6 @@
 import { EnhancedOmit } from './types.js';
 
-export declare const BSONType: Readonly<{
+export declare const BsonType: Readonly<{
 	readonly array: 4,
 	readonly binData: 5,
 	readonly bool: 8,
@@ -24,9 +24,9 @@ export declare const BSONType: Readonly<{
 	readonly undefined: 6
 }>;
 
-export declare type BsonType = (typeof BSONType)[keyof typeof BSONType];
+export declare type BsonType = (typeof BsonType)[keyof typeof BsonType];
 
-export declare type BsonTypeAlias = keyof typeof BSONType;
+export declare type BsonTypeAlias = keyof typeof BsonType;
 
 export declare type IntegerType = bigint | number;
 
@@ -44,3 +44,7 @@ export declare type RegExpOrString<T> = T extends string ? RegExp | T : T;
 export declare type WithId<TSchema> = EnhancedOmit<TSchema, '_id'> & {
 	_id: string
 };
+
+export type NumericBsonType =
+	| 1 | 16 | 18 | 19 // Numeric aliases
+	| 'decimal' | 'double' | 'int' | 'long';
