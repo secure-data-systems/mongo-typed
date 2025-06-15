@@ -1,6 +1,6 @@
 import { BsonType, BsonTypeAlias, RegExpOrString, WithId } from './bson-types.js';
 import { DotNotation, DotPathValue } from './dot-notation.js';
-import { EnhancedOmit } from './types.js';
+import { Expr } from './expr.js';
 
 /**
  * It is possible to search using alternative types in mongodb e.g.
@@ -9,40 +9,36 @@ import { EnhancedOmit } from './types.js';
  */
 export declare type AlternativeType<T> = T extends ReadonlyArray<infer U> ? RegExpOrString<U> | T : RegExpOrString<T>;
 
-/** @public */
 export declare type BitwiseFilter = number /** BinData bit mask */ | ReadonlyArray<number>;
 
-/** @public */
-export declare type Condition<T> = AlternativeType<T> | FilterOperators<AlternativeType<T>>;
+export declare type Condition<T> = FilterOperators<T> | T;
 
 export declare interface Document {
 	[key: string]: any
 }
 
-export declare type Filter<TSchema> = RootFilterOperators<WithId<TSchema>> & {
-	[P in DotNotation<EnhancedOmit<TSchema, '_id'>>]?: Condition<DotPathValue<EnhancedOmit<TSchema, '_id'>, P>>;
-} & { _id?: Condition<string> };
-
-/** @public */
 export declare type FilterOperations<T> = T extends Record<string, any> ? {
 	[key in keyof T]?: FilterOperators<T[key]>;
 } : FilterOperators<T>;
 
-/** @public */
 export declare interface FilterOperators<TValue> {
-	$all?: ReadonlyArray<any>,
+	$all?: TValue extends ReadonlyArray<infer U> ? ReadonlyArray<U> : never,
 	$bitsAllClear?: BitwiseFilter,
 	$bitsAllSet?: BitwiseFilter,
 	$bitsAnyClear?: BitwiseFilter,
 	$bitsAnySet?: BitwiseFilter,
-	$elemMatch?: Document,
+	$elemMatch?: TValue extends ReadonlyArray<infer U>
+		? U extends Record<string, any>
+			? Filter<U>
+			: never
+		: never,
 	$eq?: TValue,
 	/**
 	 * When `true`, `$exists` matches the documents that contain the field,
 	 * including documents where the field value is null.
 	 */
 	$exists?: boolean,
-	$expr?: Record<string, any>,
+	$expr?: Expr<TValue>,
 	$geoIntersects?: {
 		$geometry: Document
 	},
@@ -80,3 +76,10 @@ export declare interface RootFilterOperators<TSchema> {
 	},
 	$where?: ((this: TSchema) => boolean) | string
 }
+
+export type Filter<TSchema> =
+	TSchema extends object
+	? RootFilterOperators<WithId<TSchema>> & {
+		[P in DotNotation<TSchema>]?: Condition<AlternativeType<DotPathValue<TSchema, P>>>
+	}
+	: Condition<TSchema>;
