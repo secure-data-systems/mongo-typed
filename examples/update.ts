@@ -24,7 +24,7 @@ const updatePost: Update<Post> = {
 	},
 
 	$inc: {
-		'comments.1.likes': 5,
+		'comments.$.likes': 5,
 		'views': 1
 	},
 

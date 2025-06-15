@@ -5,7 +5,8 @@ interface User {
 	_id: string,
 	age: number,
 	email: string,
-	roles: string[]
+	roles: string[],
+	tags: string[]
 }
 
 const query: Filter<User> = {
@@ -15,4 +16,10 @@ const query: Filter<User> = {
 	],
 	age: { $gte: 18 },
 	roles: { $in: ['admin', 'user'] }
+};
+
+const filter2: Filter<User> = {
+	'tags': {
+		$all: ['admin', 'verified'] // ✅ Correct
+	}
 };
