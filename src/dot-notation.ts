@@ -10,10 +10,12 @@ export type DotNotation<
 		? never
 		: T extends readonly (infer U)[]
 			? (
+				| `${TPrefix}${number}`
 				| DotNotation<U, TAllowPlaceholder, `${TPrefix}${number}.`, [...TDepth, 1]>
 				| DotNotation<U, TAllowPlaceholder, `${TPrefix}`, [...TDepth, 1]>
 				| (TAllowPlaceholder extends true
 					? (
+						| `${TPrefix}$[${string}]`
 						| DotNotation<U, TAllowPlaceholder, `${TPrefix}$.`, [...TDepth, 1]>
 						| DotNotation<U, TAllowPlaceholder, `${TPrefix}$[${string}].`, [...TDepth, 1]>
 						| DotNotation<U, TAllowPlaceholder, `${TPrefix}$[].`, [...TDepth, 1]>
@@ -36,37 +38,31 @@ export type DotPathValue<
 	TAllowPlaceholder extends boolean = false,
 	TDepth extends number[] = []
 > =
-	T extends unknown
-		? TDepth['length'] extends 9
-			? never
-			: TPath extends `${infer Key}.${infer Rest}`
-				? Key extends keyof T
-					? DotPathValue<NonNullable<T[Key]>, Rest, TAllowPlaceholder, [...TDepth, 1]>
-					: T extends readonly (infer U)[]
-						? Key extends `${number}`
-							? DotPathValue<U, Rest, TAllowPlaceholder, [...TDepth, 1]>
-							: TAllowPlaceholder extends true
-								? Key extends `$[]` | `$`
-									? DotPathValue<U, Rest, TAllowPlaceholder, [...TDepth, 1]>
-									: Key extends `$[${string}]`
-										? DotPathValue<U, Rest, TAllowPlaceholder, [...TDepth, 1]>
-										: DotPathValue<U, `${Key}.${Rest}`, TAllowPlaceholder, [...TDepth, 1]>
-								: DotPathValue<U, `${Key}.${Rest}`, TAllowPlaceholder, [...TDepth, 1]>
+	TDepth['length'] extends 9
+		? never
+		: TPath extends `${infer Key}.${infer Rest}`
+			? T extends readonly (infer U)[]
+				? Key extends `${number}`
+					? DotPathValue<U, Rest, TAllowPlaceholder, [...TDepth, 1]>
+					: TAllowPlaceholder extends true
+						? Key extends `$[${string}]` | `$[]` | `$`
+							? DotPathValue<U, Rest, TAllowPlaceholder, [...TDepth, 1]>[]
+							: never
 						: never
-				: TPath extends keyof T
-					? T[TPath]
-					: T extends readonly (infer U)[]
-						? TPath extends `${number}`
-							? U
-							: TAllowPlaceholder extends true
-								? TPath extends `$[]` | `$`
-									? U
-									: TPath extends `$[${string}]`
-										? U
-										: DotPathValue<U, TPath, TAllowPlaceholder, [...TDepth, 1]>
-								: DotPathValue<U, TPath, TAllowPlaceholder, [...TDepth, 1]>
+			: Key extends keyof T
+				? DotPathValue<NonNullable<T[Key]>, Rest, TAllowPlaceholder, [...TDepth, 1]>
+				: never
+		: T extends readonly (infer U)[]
+			? TPath extends `${number}`
+				? U
+				: TAllowPlaceholder extends true
+					? TPath extends `$[${string}]` | `$[]` | `$`
+						? U[]
 						: never
-		: never;
+					: never
+		: TPath extends keyof T
+			? T[TPath]
+			: never;
 
 export type OnlyFieldsOfTypeDotNotation<
 	T,
