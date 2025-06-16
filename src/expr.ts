@@ -1,178 +1,177 @@
 import { NumericBsonType } from './bson-types.js';
+import { DotNotation } from './dot-notation.js';
 
-export type ArrayExpr =
+export type ArrayExpr<TInput> =
 	| Array<unknown>
-	| FieldRef
-	| { $concatArrays: ArrayExpr[] }
-	| { $filter: { as?: string, cond: BooleanExpr, input: ArrayExpr } }
+	| FieldRef<TInput>
+	| { $concatArrays: ArrayExpr<TInput>[] }
+	| { $filter: { as?: string, cond: BooleanExpr<TInput>, input: ArrayExpr<TInput> } }
 	| { $literal: Array<unknown> }
-	| { $map: { as?: string, in: Expr, input: ArrayExpr } }
-	| { $range: [NumericExpr, NumericExpr, NumericExpr?] }
-	| { $reduce: { in: Expr, initialValue: Expr, input: ArrayExpr } }
-	| { $reverseArray: ArrayExpr }
-	| { $setDifference: [ArrayExpr, ArrayExpr] }
-	| { $setIntersection: [ArrayExpr, ArrayExpr] }
-	| { $setUnion: [ArrayExpr, ArrayExpr] }
-	| { $slice: [ArrayExpr, NumericExpr, NumericExpr?] }
-	| { $zip: { defaults?: ArrayExpr, inputs: ArrayExpr[], useLongestLength?: boolean } };
+	| { $map: { as?: string, in: Expr<TInput>, input: ArrayExpr<TInput> } }
+	| { $range: [NumericExpr<TInput>, NumericExpr<TInput>, NumericExpr<TInput>?] }
+	| { $reduce: { in: Expr<TInput>, initialValue: Expr<TInput>, input: ArrayExpr<TInput> } }
+	| { $reverseArray: ArrayExpr<TInput> }
+	| { $setDifference: [ArrayExpr<TInput>, ArrayExpr<TInput>] }
+	| { $setIntersection: [ArrayExpr<TInput>, ArrayExpr<TInput>] }
+	| { $setUnion: [ArrayExpr<TInput>, ArrayExpr<TInput>] }
+	| { $slice: [ArrayExpr<TInput>, NumericExpr<TInput>, NumericExpr<TInput>?] }
+	| { $zip: { defaults?: ArrayExpr<TInput>, inputs: ArrayExpr<TInput>[], useLongestLength?: boolean } };
 
-export type BooleanExpr =
+export type BooleanExpr<TInput> =
 	| boolean
-	| FieldRef
-	| { $allElementsTrue: ArrayExpr }
-	| { $and: ArrayExpr }
-	| { $anyElementTrue: ArrayExpr }
-	| { $eq: [Expr, Expr] }
-	| { $gt: [Expr, Expr] }
-	| { $gte: [Expr, Expr] }
-	| { $in: [Expr, ArrayExpr] }
+	| FieldRef<TInput>
+	| { $allElementsTrue: ArrayExpr<TInput> }
+	| { $and: ArrayExpr<TInput> }
+	| { $anyElementTrue: ArrayExpr<TInput> }
+	| { $eq: [Expr<TInput>, Expr<TInput>] }
+	| { $gt: [Expr<TInput>, Expr<TInput>] }
+	| { $gte: [Expr<TInput>, Expr<TInput>] }
+	| { $in: [Expr<TInput>, ArrayExpr<TInput>] }
 	| { $literal: boolean }
-	| { $lt: [Expr, Expr] }
-	| { $lte: [Expr, Expr] }
-	| { $ne: [Expr, Expr] }
-	| { $nin: [Expr, ArrayExpr] }
-	| { $nor: Expr[] }
-	| { $not: Expr }
-	| { $or: Expr[] }
-	| { $regexMatch: { input: StringExpr, options?: StringExpr, regex: StringExpr } }
-	| { $setEquals: [ArrayExpr, ArrayExpr] }
-	| { $setIsSubset: [ArrayExpr, ArrayExpr] };
+	| { $lt: [Expr<TInput>, Expr<TInput>] }
+	| { $lte: [Expr<TInput>, Expr<TInput>] }
+	| { $ne: [Expr<TInput>, Expr<TInput>] }
+	| { $nin: [Expr<TInput>, ArrayExpr<TInput>] }
+	| { $nor: Expr<TInput>[] }
+	| { $not: Expr<TInput> }
+	| { $or: Expr<TInput>[] }
+	| { $regexMatch: { input: StringExpr<TInput>, options?: StringExpr<TInput>, regex: StringExpr<TInput> } }
+	| { $setEquals: [ArrayExpr<TInput>, ArrayExpr<TInput>] }
+	| { $setIsSubset: [ArrayExpr<TInput>, ArrayExpr<TInput>] };
 
-export interface ConditionalExpr {
+export interface ConditionalExpr<TInput> {
 	$cond?:
-		[Expr, Expr, Expr]
+		[Expr<TInput>, Expr<TInput>, Expr<TInput>]
 		| {
-			else: Expr,
-			if: Expr,
-			then: Expr
+			else: Expr<TInput>,
+			if: Expr<TInput>,
+			then: Expr<TInput>
 		},
-	$ifNull?: [Expr, Expr],
+	$ifNull?: [Expr<TInput>, Expr<TInput>],
 	$switch: {
 		branches: {
-			case: Expr,
-			then: Expr
+			case: Expr<TInput>,
+			then: Expr<TInput>
 		}[],
-		default: Expr
+		default: Expr<TInput>
 	}
 }
 
-export type DateExpr =
+export type DateExpr<TInput> =
 	| Date
-	| FieldRef
-	| { $dateFromParts: { day?: NumericExpr, hour?: NumericExpr, millisecond?: NumericExpr, minute?: NumericExpr, month?: NumericExpr, second?: NumericExpr, timezone?: StringExpr, year: NumericExpr } }
-	| { $dateFromString: { dateString: StringExpr, format?: StringExpr, onError?: Expr, onNull?: Expr, timezone?: StringExpr } }
+	| FieldRef<TInput>
+	| { $dateFromParts: { day?: NumericExpr<TInput>, hour?: NumericExpr<TInput>, millisecond?: NumericExpr<TInput>, minute?: NumericExpr<TInput>, month?: NumericExpr<TInput>, second?: NumericExpr<TInput>, timezone?: StringExpr<TInput>, year: NumericExpr<TInput> } }
+	| { $dateFromString: { dateString: StringExpr<TInput>, format?: StringExpr<TInput>, onError?: Expr<TInput>, onNull?: Expr<TInput>, timezone?: StringExpr<TInput> } }
 	| { $literal: Date }
 ;
 
-export interface DatePartsExpr {
-	$dateToParts: { date: DateExpr, iso8601?: BooleanExpr, timezone?: StringExpr }
+export interface DatePartsExpr<TInput> {
+	$dateToParts: { date: DateExpr<TInput>, iso8601?: BooleanExpr<TInput>, timezone?: StringExpr<TInput> }
 }
 
-export interface DateTimezoneExpr {
-	date: DateExpr,
-	timezone: StringExpr
+export interface DateTimezoneExpr<TInput> {
+	date: DateExpr<TInput>,
+	timezone: StringExpr<TInput>
 }
 
-export type Expr<T = unknown> =
-	| ArrayExpr
-	| BooleanExpr
-	| ConditionalExpr
-	| DateExpr
-	| DatePartsExpr
-	| NumericExpr
-	| StringExpr
-	| TypeExpr
-	| VariableExpr;
+export type Expr<T> =
+	| ArrayExpr<T>
+	| BooleanExpr<T>
+	| ConditionalExpr<T>
+	| DateExpr<T>
+	| DatePartsExpr<T>
+	| NumericExpr<T>
+	| StringExpr<T>
+	| TypeExpr<T>
+	| VariableExpr<T>;
 
-export type FieldRef = `$${string}`;
+export type FieldPaths<T> = DotNotation<T> extends infer U ? U & string : never;
 
-export type NumericExpr =
-	| FieldRef
+export type FieldRef<T> = `$${FieldPaths<T>}`;
+
+export type NumericExpr<TInput> =
+	| FieldRef<TInput>
 	| number
-	| { $abs: NumericExpr }
-	| { $acos: NumericExpr }
-	| { $acosh: NumericExpr }
-	| { $add: (DateExpr | NumericExpr)[] }
-	| { $asin: NumericExpr }
-	| { $asinh: NumericExpr }
-	| { $atan: NumericExpr }
-	| { $atanh: NumericExpr }
-	| { $ceil: NumericExpr }
-	| { $convert: { input: Expr, onError?: Expr, onNull?: Expr, to: NumericBsonType | { type: NumericBsonType } } }
-	| { $cos: NumericExpr }
-	| { $cosh: NumericExpr }
-	| { $dateDiff: { endDate: DateExpr, startDate: DateExpr, timezone?: StringExpr, unit: StringExpr } }
-	| { $dayOfMonth?: DateExpr | DateTimezoneExpr }
-	| { $dayOfWeek?: DateExpr | DateTimezoneExpr }
-	| { $dayOfYear?: DateExpr | DateTimezoneExpr }
-	| { $degreesToRadians: NumericExpr }
-	| { $divide: [NumericExpr, NumericExpr] }
-	| { $exp: NumericExpr }
-	| { $floor: NumericExpr }
-	| { $hour?: DateExpr | DateTimezoneExpr }
-	| { $isoDayOfWeek?: DateExpr | DateTimezoneExpr }
-	| { $isoWeek?: DateExpr | DateTimezoneExpr }
-	| { $isoWeekYear?: DateExpr | DateTimezoneExpr }
+	| { $abs: NumericExpr<TInput> }
+	| { $acos: NumericExpr<TInput> }
+	| { $acosh: NumericExpr<TInput> }
+	| { $add: (DateExpr<TInput> | NumericExpr<TInput>)[] }
+	| { $asin: NumericExpr<TInput> }
+	| { $asinh: NumericExpr<TInput> }
+	| { $atan: NumericExpr<TInput> }
+	| { $atanh: NumericExpr<TInput> }
+	| { $ceil: NumericExpr<TInput> }
+	| { $convert: { input: Expr<TInput>, onError?: Expr<TInput>, onNull?: Expr<TInput>, to: NumericBsonType | { type: NumericBsonType } } }
+	| { $cos: NumericExpr<TInput> }
+	| { $cosh: NumericExpr<TInput> }
+	| { $dateDiff: { endDate: DateExpr<TInput>, startDate: DateExpr<TInput>, timezone?: StringExpr<TInput>, unit: StringExpr<TInput> } }
+	| { $dayOfMonth?: DateExpr<TInput> | DateTimezoneExpr<TInput> }
+	| { $dayOfWeek?: DateExpr<TInput> | DateTimezoneExpr<TInput> }
+	| { $dayOfYear?: DateExpr<TInput> | DateTimezoneExpr<TInput> }
+	| { $degreesToRadians: NumericExpr<TInput> }
+	| { $divide: [NumericExpr<TInput>, NumericExpr<TInput>] }
+	| { $exp: NumericExpr<TInput> }
+	| { $floor: NumericExpr<TInput> }
+	| { $hour?: DateExpr<TInput> | DateTimezoneExpr<TInput> }
+	| { $isoDayOfWeek?: DateExpr<TInput> | DateTimezoneExpr<TInput> }
+	| { $isoWeek?: DateExpr<TInput> | DateTimezoneExpr<TInput> }
+	| { $isoWeekYear?: DateExpr<TInput> | DateTimezoneExpr<TInput> }
 	| { $literal: number }
-	| { $ln: NumericExpr }
-	| { $log10: NumericExpr }
-	| { $log: [NumericExpr, NumericExpr] } // [value, base]
-	| { $millisecond?: DateExpr | DateTimezoneExpr }
-	| { $minute?: DateExpr | DateTimezoneExpr }
-	| { $mod: [NumericExpr, NumericExpr] }
-	| { $month?: DateExpr | DateTimezoneExpr }
-	| { $multiply: NumericExpr[] }
-	| { $pow: [NumericExpr, NumericExpr] }
-	| { $radiansToDegrees: NumericExpr }
+	| { $ln: NumericExpr<TInput> }
+	| { $log10: NumericExpr<TInput> }
+	| { $log: [NumericExpr<TInput>, NumericExpr<TInput>] } // [value, base]
+	| { $millisecond?: DateExpr<TInput> | DateTimezoneExpr<TInput> }
+	| { $minute?: DateExpr<TInput> | DateTimezoneExpr<TInput> }
+	| { $mod: [NumericExpr<TInput>, NumericExpr<TInput>] }
+	| { $month?: DateExpr<TInput> | DateTimezoneExpr<TInput> }
+	| { $multiply: NumericExpr<TInput>[] }
+	| { $pow: [NumericExpr<TInput>, NumericExpr<TInput>] }
+	| { $radiansToDegrees: NumericExpr<TInput> }
 	| { $rand: Record<string, never> }
-	| { $round: [NumericExpr, NumericExpr] | NumericExpr }
-	| { $second?: DateExpr | DateTimezoneExpr }
-	| { $sin: NumericExpr }
-	| { $sinh: NumericExpr }
-	| { $size: ArrayExpr }
-	| { $sqrt: NumericExpr }
-	| { $strLenBytes: StringExpr }
-	| { $strLenCP: StringExpr }
-	| { $subtract: [DateExpr, DateExpr] }
-	| { $subtract: [DateExpr | NumericExpr, NumericExpr] }
-	| { $tan: NumericExpr }
-	| { $tanh: NumericExpr }
-	| { $toDecimal: Expr }
-	| { $toDouble: Expr }
-	| { $toInt: Expr }
-	| { $toLong: Expr }
-	| { $trunc: [NumericExpr, NumericExpr] | NumericExpr }
-	| { $week?: DateExpr | DateTimezoneExpr }
-	| { $year?: DateExpr | DateTimezoneExpr }
+	| { $round: [NumericExpr<TInput>, NumericExpr<TInput>] | NumericExpr<TInput> }
+	| { $second?: DateExpr<TInput> | DateTimezoneExpr<TInput> }
+	| { $sin: NumericExpr<TInput> }
+	| { $sinh: NumericExpr<TInput> }
+	| { $size: ArrayExpr<TInput> }
+	| { $sqrt: NumericExpr<TInput> }
+	| { $strLenBytes: StringExpr<TInput> }
+	| { $strLenCP: StringExpr<TInput> }
+	| { $subtract: [DateExpr<TInput>, DateExpr<TInput>] }
+	| { $subtract: [DateExpr<TInput> | NumericExpr<TInput>, NumericExpr<TInput>] }
+	| { $tan: NumericExpr<TInput> }
+	| { $tanh: NumericExpr<TInput> }
+	| { $toDecimal: Expr<TInput> }
+	| { $toDouble: Expr<TInput> }
+	| { $toInt: Expr<TInput> }
+	| { $toLong: Expr<TInput> }
+	| { $trunc: [NumericExpr<TInput>, NumericExpr<TInput>] | NumericExpr<TInput> }
+	| { $week?: DateExpr<TInput> | DateTimezoneExpr<TInput> }
+	| { $year?: DateExpr<TInput> | DateTimezoneExpr<TInput> }
 ;
 
-export type StringExpr =
-	| FieldRef
+export type StringExpr<TInput> =
+	| FieldRef<TInput>
 	| string
-	| { $concat: StringExpr[] }
-	| { $dateToString: { date: DateExpr, format?: StringExpr, onNull?: Expr, timezone?: StringExpr } }
+	| { $concat: StringExpr<TInput>[] }
+	| { $dateToString: { date: DateExpr<TInput>, format?: StringExpr<TInput>, onNull?: Expr<TInput>, timezone?: StringExpr<TInput> } }
 	| { $literal: string }
-	| { $ltrim: { chars?: StringExpr, input: StringExpr } }
-	| { $replaceAll: { find: StringExpr, input: StringExpr, replacement: StringExpr } }
-	| { $replaceOne: { find: StringExpr, input: StringExpr, replacement: StringExpr } }
-	| { $rtrim: { chars?: StringExpr, input: StringExpr } }
-	| { $substr: [StringExpr, NumericExpr, NumericExpr] }
-	| { $substrBytes: [StringExpr, NumericExpr, NumericExpr] }
-	| { $substrCP: [StringExpr, NumericExpr, NumericExpr] }
-	| { $toLower: StringExpr }
-	| { $toString: Expr }
-	| { $toUpper: StringExpr }
-	| { $trim: { chars?: StringExpr, input: StringExpr } };
+	| { $ltrim: { chars?: StringExpr<TInput>, input: StringExpr<TInput> } }
+	| { $replaceAll: { find: StringExpr<TInput>, input: StringExpr<TInput>, replacement: StringExpr<TInput> } }
+	| { $replaceOne: { find: StringExpr<TInput>, input: StringExpr<TInput>, replacement: StringExpr<TInput> } }
+	| { $rtrim: { chars?: StringExpr<TInput>, input: StringExpr<TInput> } }
+	| { $substr: [StringExpr<TInput>, NumericExpr<TInput>, NumericExpr<TInput>] }
+	| { $substrBytes: [StringExpr<TInput>, NumericExpr<TInput>, NumericExpr<TInput>] }
+	| { $substrCP: [StringExpr<TInput>, NumericExpr<TInput>, NumericExpr<TInput>] }
+	| { $toLower: StringExpr<TInput> }
+	| { $toString: Expr<TInput> }
+	| { $toUpper: StringExpr<TInput> }
+	| { $trim: { chars?: StringExpr<TInput>, input: StringExpr<TInput> } };
 
-export interface TypeExpr {
-	$type?: Expr
+export interface TypeExpr<TInput> {
+	$type?: Expr<TInput>
 }
 
-export type VariableExpr =
-	| { $let?: { in: Expr, vars: Record<string, Expr> } }
-	| { $map?: { as: string, in: Expr, input: ArrayExpr } }
-	| { $reduce?: { in: Expr, initialValue: Expr, input: ArrayExpr } };
-
-type OnlyOneKey<T> = {
-	[K in keyof T]: { [P in K]: T[P] } & Partial<Record<Exclude<keyof T, K>, never>>
-}[keyof T];
+export type VariableExpr<TInput> =
+	| { $let?: { in: Expr<TInput>, vars: Record<string, Expr<TInput>> } }
+	| { $map?: { as: string, in: Expr<TInput>, input: ArrayExpr<TInput> } }
+	| { $reduce?: { in: Expr<TInput>, initialValue: Expr<TInput>, input: ArrayExpr<TInput> } };
