@@ -1,17 +1,24 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { describe, it } from 'node:test';
 
-import type { DotNotation, DotPathValue } from './dot-notation.js';
+import type { DotNotation, DotPathValue, OnlyFieldsOfTypeDotNotation } from './dot-notation.js';
 import type { Assert, Equals, Includes } from './types.js';
 
-// Test interface
+interface Profile {
+	active: boolean,
+	bio: string,
+	rating: number
+}
+
 interface User {
 	address: {
 		city: string,
 		zip: number
 	},
+	createdAt: Date,
 	email: string,
 	name: string,
+	profile: Profile,
 	roles: {
 		name: string
 	}[],
@@ -81,6 +88,12 @@ describe('DotNotation', () => {
 		// @ts-expect-error should NOT include 10th level (would be 'a.b.c.d.e.f.g.h.i.j')
 		type T2 = Assert<Equals<'a.b.c.d.e.f.g.h.i.j', T>>;
 	});
+
+	it('should treat dates as simple types', () => {
+		type T = DotNotation<{ createdAt: Date }>;
+
+		type T1 = Assert<Equals<T, 'createdAt'>>;
+	});
 });
 
 describe('DotPathValue', () => {
@@ -104,17 +117,113 @@ describe('DotPathValue', () => {
 		type T4 = Assert<Equals<DotPathValue<User, 'roles.123'>, { name: string }>>;
 	});
 
-	it('should resolve placeholder array paths (TAllowPlaceholder = true)', () => {
-		type T1 = Assert<Equals<DotPathValue<User, 'tags.$', true>, string[]>>;
-		type T2 = Assert<Equals<DotPathValue<User, 'tags.$[]', true>, string[]>>;
-		type T3 = Assert<Equals<DotPathValue<User, 'tags.$[id]', true>, string[]>>;
-		type T4 = Assert<Equals<DotPathValue<User, 'roles.$', true>, { name: string }[]>>;
-		type T5 = Assert<Equals<DotPathValue<User, 'roles.$[]', true>, { name: string }[]>>;
-		type T6 = Assert<Equals<DotPathValue<User, 'roles.$[id]', true>, { name: string }[]>>;
+	it('should resolve placeholder array paths (TCheckInArray = true)', () => {
+		type T1 = Assert<Equals<DotPathValue<User, 'tags.$', true, true>, string[]>>;
+		type T2 = Assert<Equals<DotPathValue<User, 'tags.$[]', true, true>, string[]>>;
+		type T3 = Assert<Equals<DotPathValue<User, 'tags.$[id]', true, true>, string[]>>;
+		type T4 = Assert<Equals<DotPathValue<User, 'roles.$', true, true>, { name: string }[]>>;
+		type T5 = Assert<Equals<DotPathValue<User, 'roles.$[]', true, true>, { name: string }[]>>;
+		type T6 = Assert<Equals<DotPathValue<User, 'roles.$[id]', true, true>, { name: string }[]>>;
 	});
 
-	it('should resolve deeply nested placeholders', () => {
-		type T1 = Assert<Equals<DotPathValue<User, 'roles.$.name', true>, string[]>>;
-		type T2 = Assert<Equals<DotPathValue<User, 'roles.$[].name', true>, string[]>>;
+	it('should resolve placeholder array paths (TCheckInArray = false)', () => {
+		type T1 = Assert<Equals<DotPathValue<User, 'tags.$', true, false>, string>>;
+		type T2 = Assert<Equals<DotPathValue<User, 'tags.$[]', true, false>, string>>;
+		type T3 = Assert<Equals<DotPathValue<User, 'tags.$[id]', true, false>, string>>;
+		type T4 = Assert<Equals<DotPathValue<User, 'roles.$', true, false>, { name: string }>>;
+		type T5 = Assert<Equals<DotPathValue<User, 'roles.$[]', true, false>, { name: string }>>;
+		type T6 = Assert<Equals<DotPathValue<User, 'roles.$[id]', true, false>, { name: string }>>;
+	});
+
+	it('should resolve deeply nested placeholders (TCheckInArray = true)', () => {
+		type T1 = Assert<Equals<DotPathValue<User, 'roles.name', true, true>, string[]>>;
+		type T2 = Assert<Equals<DotPathValue<User, 'roles.$.name', true, true>, string[]>>;
+		type T3 = Assert<Equals<DotPathValue<User, 'roles.$[].name', true, true>, string[]>>;
+	});
+
+	it('should resolve deeply nested placeholders (TCheckInArray = false)', () => {
+		type T1 = Assert<Equals<DotPathValue<User, 'roles.name', true, false>, string>>;
+		type T2 = Assert<Equals<DotPathValue<User, 'roles.$.name', true, false>, string>>;
+		type T3 = Assert<Equals<DotPathValue<User, 'roles.$[].name', true, false>, string>>;
+	});
+});
+
+describe('OnlyFieldsOfTypeDotNotation', () => {
+	it('should include only number fields', () => {
+		type T = OnlyFieldsOfTypeDotNotation<User, number>;
+
+		interface Expected {
+			'address.zip'?: number,
+			'profile.rating'?: number
+		}
+
+		type T1 = Assert<Equals<T, Expected>>;
+	});
+
+	it('should include only string fields', () => {
+		type T = OnlyFieldsOfTypeDotNotation<User, string>;
+
+		interface Expected {
+			[x: `roles.${number}.name`]: string | undefined,
+			[x: `tags.${number}`]: string | undefined,
+			'address.city'?: string | undefined,
+			'email'?: string | undefined,
+			'name'?: string | undefined,
+			'profile.bio'?: string | undefined
+		}
+
+		type T1 = Assert<Equals<T, Expected>>;
+	});
+
+	it('should include only boolean fields', () => {
+		type T = OnlyFieldsOfTypeDotNotation<User, boolean>;
+
+		interface Expected {
+			'profile.active'?: boolean
+		}
+
+		type T1 = Assert<Equals<T, Expected>>;
+	});
+
+	it('should include only Date fields', () => {
+		type T = OnlyFieldsOfTypeDotNotation<User, Date>;
+
+		interface Expected {
+			createdAt?: Date
+		}
+
+		type T1 = Assert<Equals<T, Expected>>;
+	});
+
+	it('should allow custom assignable type', () => {
+		type T = OnlyFieldsOfTypeDotNotation<User, number, false, false, string>;
+
+		interface Expected {
+			'address.zip'?: string,
+			'profile.rating'?: string
+		}
+
+		type T1 = Assert<Equals<T, Expected>>;
+	});
+
+	interface Post {
+		message: string[]
+	}
+
+	it('should support placeholder dot notation when enabled', () => {
+		type T = OnlyFieldsOfTypeDotNotation<User, string | string[]>;
+
+		interface Expected {
+			[x: `roles.${number}.name`]: string | undefined,
+			[x: `tags.${number}`]: string | undefined,
+			'address.city'?: string | undefined,
+			'email'?: string | undefined,
+			'name'?: string | undefined,
+			'profile.bio'?: string | undefined,
+			'roles.name'?: string[] | undefined,
+			'tags'?: string[] | undefined
+		}
+
+		type T1 = Assert<Equals<T, Expected>>;
 	});
 });
