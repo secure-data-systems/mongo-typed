@@ -38,7 +38,7 @@ export declare interface FilterOperators<TValue> {
 	 * including documents where the field value is null.
 	 */
 	$exists?: boolean,
-	$expr?: Expr<TValue>,
+	$expr?: Expr<TValue extends object ? TValue : object>,
 	$geoIntersects?: {
 		$geometry: Document
 	},

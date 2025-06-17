@@ -1,7 +1,7 @@
 import { NumericBsonType } from './bson-types.js';
 import { DotNotation } from './dot-notation.js';
 
-export type ArrayExpr<TInput> =
+export type ArrayExpr<TInput extends object> =
 	| Array<unknown>
 	| FieldRef<TInput>
 	| { $concatArrays: ArrayExpr<TInput>[] }
@@ -17,7 +17,7 @@ export type ArrayExpr<TInput> =
 	| { $slice: [ArrayExpr<TInput>, NumericExpr<TInput>, NumericExpr<TInput>?] }
 	| { $zip: { defaults?: ArrayExpr<TInput>, inputs: ArrayExpr<TInput>[], useLongestLength?: boolean } };
 
-export type BooleanExpr<TInput> =
+export type BooleanExpr<TInput extends object> =
 	| boolean
 	| FieldRef<TInput>
 	| { $allElementsTrue: ArrayExpr<TInput> }
@@ -39,7 +39,7 @@ export type BooleanExpr<TInput> =
 	| { $setEquals: [ArrayExpr<TInput>, ArrayExpr<TInput>] }
 	| { $setIsSubset: [ArrayExpr<TInput>, ArrayExpr<TInput>] };
 
-export interface ConditionalExpr<TInput> {
+export interface ConditionalExpr<TInput extends object> {
 	$cond?:
 		[Expr<TInput>, Expr<TInput>, Expr<TInput>]
 		| {
@@ -57,7 +57,7 @@ export interface ConditionalExpr<TInput> {
 	}
 }
 
-export type DateExpr<TInput> =
+export type DateExpr<TInput extends object> =
 	| Date
 	| FieldRef<TInput>
 	| { $dateFromParts: { day?: NumericExpr<TInput>, hour?: NumericExpr<TInput>, millisecond?: NumericExpr<TInput>, minute?: NumericExpr<TInput>, month?: NumericExpr<TInput>, second?: NumericExpr<TInput>, timezone?: StringExpr<TInput>, year: NumericExpr<TInput> } }
@@ -65,16 +65,16 @@ export type DateExpr<TInput> =
 	| { $literal: Date }
 ;
 
-export interface DatePartsExpr<TInput> {
+export interface DatePartsExpr<TInput extends object> {
 	$dateToParts: { date: DateExpr<TInput>, iso8601?: BooleanExpr<TInput>, timezone?: StringExpr<TInput> }
 }
 
-export interface DateTimezoneExpr<TInput> {
+export interface DateTimezoneExpr<TInput extends object> {
 	date: DateExpr<TInput>,
 	timezone: StringExpr<TInput>
 }
 
-export type Expr<T> =
+export type Expr<T extends object> =
 	| ArrayExpr<T>
 	| BooleanExpr<T>
 	| ConditionalExpr<T>
@@ -85,11 +85,11 @@ export type Expr<T> =
 	| TypeExpr<T>
 	| VariableExpr<T>;
 
-export type FieldPaths<T> = DotNotation<T> extends infer U ? U & string : never;
+export type FieldPaths<T extends object> = DotNotation<T> extends infer U ? U & string : never;
 
-export type FieldRef<T> = `$${FieldPaths<T>}`;
+export type FieldRef<T extends object> = `$${FieldPaths<T>}`;
 
-export type NumericExpr<TInput> =
+export type NumericExpr<TInput extends object> =
 	| FieldRef<TInput>
 	| number
 	| { $abs: NumericExpr<TInput> }
@@ -149,7 +149,7 @@ export type NumericExpr<TInput> =
 	| { $year?: DateExpr<TInput> | DateTimezoneExpr<TInput> }
 ;
 
-export type StringExpr<TInput> =
+export type StringExpr<TInput extends object> =
 	| FieldRef<TInput>
 	| string
 	| { $concat: StringExpr<TInput>[] }
@@ -167,11 +167,11 @@ export type StringExpr<TInput> =
 	| { $toUpper: StringExpr<TInput> }
 	| { $trim: { chars?: StringExpr<TInput>, input: StringExpr<TInput> } };
 
-export interface TypeExpr<TInput> {
+export interface TypeExpr<TInput extends object> {
 	$type?: Expr<TInput>
 }
 
-export type VariableExpr<TInput> =
+export type VariableExpr<TInput extends object> =
 	| { $let?: { in: Expr<TInput>, vars: Record<string, Expr<TInput>> } }
 	| { $map?: { as: string, in: Expr<TInput>, input: ArrayExpr<TInput> } }
 	| { $reduce?: { in: Expr<TInput>, initialValue: Expr<TInput>, input: ArrayExpr<TInput> } };
