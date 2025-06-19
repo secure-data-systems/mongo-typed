@@ -11,8 +11,8 @@ interface Profile {
 }
 
 interface User {
-	address: {
-		city: string,
+	address?: {
+		city?: string,
 		zip: number
 	},
 	createdAt: Date,
@@ -100,13 +100,13 @@ describe('DotPathValue', () => {
 	it('should resolve top-level fields', () => {
 		type T1 = Assert<Equals<DotPathValue<User, 'name'>, string>>;
 		type T2 = Assert<Equals<DotPathValue<User, 'email'>, string>>;
-		type T3 = Assert<Equals<DotPathValue<User, 'address'>, { city: string, zip: number }>>;
+		type T3 = Assert<Equals<DotPathValue<User, 'address'>, undefined | { city?: string, zip: number }>>;
 		type T4 = Assert<Equals<DotPathValue<User, 'tags'>, string[]>>;
 		type T5 = Assert<Equals<DotPathValue<User, 'roles'>, { name: string }[]>>;
 	});
 
 	it('should resolve nested fields', () => {
-		type T1 = Assert<Equals<DotPathValue<User, 'address.city'>, string>>;
+		type T1 = Assert<Equals<DotPathValue<User, 'address.city'>, string | undefined>>;
 		type T2 = Assert<Equals<DotPathValue<User, 'address.zip'>, number>>;
 	});
 
@@ -161,15 +161,16 @@ describe('OnlyFieldsOfTypeDotNotation', () => {
 	});
 
 	it('should include only string fields', () => {
-		type T = OnlyFieldsOfTypeDotNotation<User, string>;
+		type T = OnlyFieldsOfTypeDotNotation<User, string | undefined>;
 
 		interface Expected {
 			[x: `roles.${number}.name`]: string | undefined,
 			[x: `tags.${number}`]: string | undefined,
-			'address.city'?: string | undefined,
-			'email'?: string | undefined,
-			'name'?: string | undefined,
-			'profile.bio'?: string | undefined
+			'address.city'?: string,
+			'email'?: string,
+			'name'?: string,
+			'profile.bio'?: string,
+			'roles.name'?: string
 		}
 
 		type T1 = Assert<Equals<T, Expected>>;
@@ -206,22 +207,18 @@ describe('OnlyFieldsOfTypeDotNotation', () => {
 		type T1 = Assert<Equals<T, Expected>>;
 	});
 
-	interface Post {
-		message: string[]
-	}
-
 	it('should support placeholder dot notation when enabled', () => {
-		type T = OnlyFieldsOfTypeDotNotation<User, string | string[]>;
+		type T = OnlyFieldsOfTypeDotNotation<User, string | string[] | undefined>;
 
 		interface Expected {
 			[x: `roles.${number}.name`]: string | undefined,
 			[x: `tags.${number}`]: string | undefined,
-			'address.city'?: string | undefined,
-			'email'?: string | undefined,
-			'name'?: string | undefined,
-			'profile.bio'?: string | undefined,
-			'roles.name'?: string[] | undefined,
-			'tags'?: string[] | undefined
+			'address.city'?: string,
+			'email'?: string,
+			'name'?: string,
+			'profile.bio'?: string,
+			'roles.name'?: string,
+			'tags'?: string[]
 		}
 
 		type T1 = Assert<Equals<T, Expected>>;
