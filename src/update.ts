@@ -5,9 +5,13 @@ import { Filter } from './filter.js';
 import { Identifiable, PartialButId } from './identifiable.js';
 import { EnhancedOmit } from './types.js';
 
-export declare type FieldsAndValues<TSchema, TAllowPlaceholder extends boolean = false> = Readonly<{
+export declare type FieldsAndValues<
+	TSchema extends object,
+	TAllowPlaceholder extends boolean = false,
+	TCheckInArray extends boolean = false
+> = Readonly<{
 	[P in DotNotation<EnhancedOmit<TSchema, '_id'>, TAllowPlaceholder>]?:
-		DotPathValue<EnhancedOmit<TSchema, '_id'>, P, TAllowPlaceholder> extends infer Value
+		DotPathValue<EnhancedOmit<TSchema, '_id'>, P, TAllowPlaceholder, TCheckInArray> extends infer Value
 			? UnwrapArray<Value> extends infer Unwrapped
 				? Unwrapped extends Identifiable
 					? RewrapArray<Value, PartialButId<Unwrapped>>
@@ -16,7 +20,7 @@ export declare type FieldsAndValues<TSchema, TAllowPlaceholder extends boolean =
 			: never;
 }>;
 
-export declare type PullAllOperator<T> = {
+export declare type PullAllOperator<T extends object> = {
 	[P in DotNotation<T> as DotPathValue<T, P> extends ReadonlyArray<any> | undefined ? P : never]?:
 		NonNullable<DotPathValue<T, P>> extends ReadonlyArray<infer Item>
 			? Item extends Identifiable
@@ -24,14 +28,14 @@ export declare type PullAllOperator<T> = {
 		: never;
 };
 
-export declare type PullOperator<T> = {
+export declare type PullOperator<T extends object> = {
 	[P in DotNotation<T> as DotPathValue<T, P> extends ReadonlyArray<any> | undefined ? P : never]?:
 		NonNullable<DotPathValue<T, P>> extends ReadonlyArray<infer Item>
 			? Filter<Item>
 		: never;
 };
 
-export declare type PushOperator<T> = {
+export declare type PushOperator<T extends object> = {
 	[P in DotNotation<T> as DotPathValue<T, P> extends ReadonlyArray<any> | undefined ? P : never]?:
 		NonNullable<DotPathValue<T, P>> extends ReadonlyArray<infer Item>
 			? Item extends Identifiable
@@ -52,7 +56,7 @@ export declare type PushOperator<T> = {
 		: never;
 };
 
-export declare type SetFields<T> = {
+export declare type SetFields<T extends object> = {
 	[P in DotNotation<T> as DotPathValue<T, P> extends ReadonlyArray<any> | undefined ? P : never]?:
 		NonNullable<DotPathValue<T, P>> extends ReadonlyArray<infer Item>
 			? Item extends Identifiable
@@ -61,26 +65,30 @@ export declare type SetFields<T> = {
 		: never;
 };
 
-export declare interface Update<TSchema> {
+export declare interface Update<TSchema extends object> {
 	$addToSet?: SetFields<TSchema>,
-	$bit?: OnlyFieldsOfTypeDotNotation<TSchema, NumericType | undefined, true, {
+	$bit?: OnlyFieldsOfTypeDotNotation<TSchema, NumericType, true, false, {
 		and: IntegerType
 	} | {
 		or: IntegerType
 	} | {
 		xor: IntegerType
 	}>,
-	$currentDate?: OnlyFieldsOfTypeDotNotation<TSchema, Date, true, true | { $type: 'date' | 'timestamp' }>,
-	$inc?: OnlyFieldsOfTypeDotNotation<TSchema, NumericType | undefined, true, NumericType | undefined>,
-	$max?: FieldsAndValues<TSchema, true>,
-	$min?: FieldsAndValues<TSchema, true>,
-	$mul?: OnlyFieldsOfTypeDotNotation<TSchema, NumericType | undefined, true>,
-	$pop?: OnlyFieldsOfTypeDotNotation<TSchema, ReadonlyArray<any> | undefined, false, -1 | 1>,
+	$currentDate?: OnlyFieldsOfTypeDotNotation<TSchema, Date, true, false, true | { $type: 'date' | 'timestamp' }>,
+	$inc?: OnlyFieldsOfTypeDotNotation<TSchema, NumericType | NumericType[], true, false, NumericType | undefined>,
+	$max?: FieldsAndValues<TSchema, true, false>,
+	$min?: FieldsAndValues<TSchema, true, false>,
+	$mul?: OnlyFieldsOfTypeDotNotation<TSchema, NumericType | NumericType, true, false, NumericType | undefined>,
+	$pop?: OnlyFieldsOfTypeDotNotation<TSchema, ReadonlyArray<any>, false, false, -1 | 1>,
 	$pull?: PullOperator<TSchema>,
 	$pullAll?: PullAllOperator<TSchema>,
 	$push?: PushOperator<TSchema>,
 	$rename?: Record<string, string>,
-	$set?: FieldsAndValues<TSchema, true>,
+	$set?: FieldsAndValues<TSchema, true, false>,
 	$setOnInsert?: FieldsAndValues<TSchema>,
-	$unset?: OnlyFieldsOfTypeDotNotation<TSchema, any, false, 1 | '' | boolean>
+	$unset?: UnsetFields<TSchema>
 }
+
+export type UnsetFields<T extends object> = {
+	[P in DotNotation<T, true> as undefined extends DotPathValue<T, P, true> ? P : never]?: 1 | '' | boolean | undefined;
+};
