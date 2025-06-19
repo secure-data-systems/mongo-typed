@@ -1,6 +1,6 @@
 /** Dot notation that includes numeric array indices and properly maps for use in object keys */
 
-import { And } from './types.js';
+import { And, NonNullableField } from './types.js';
 
 // DotNotation: Supports $ (if enabled), object keys, and arrays
 export type DotNotation<
@@ -14,28 +14,25 @@ export type DotNotation<
 		: T extends readonly (infer U)[]
 			? (
 				| `${TPrefix}${number}`
-				| DotNotation<U extends object ? U : never, TAllowPlaceholder, `${TPrefix}${number}.`, [...TDepth, 1]>
-				| DotNotation<U extends object ? U : never, TAllowPlaceholder, `${TPrefix}`, [...TDepth, 1]>
-
-				// If we allow placeholders then we need to add them
+				| DotNotation<NonNullableField<U> extends object ? NonNullableField<U> : never, TAllowPlaceholder, `${TPrefix}${number}.`, [...TDepth, 1]>
+				| DotNotation<NonNullableField<U> extends object ? NonNullableField<U> : never, TAllowPlaceholder, `${TPrefix}`, [...TDepth, 1]>
 				| (TAllowPlaceholder extends true
 					? (
 						| `${TPrefix}$[${string}]`
 						| `${TPrefix}$`
-						| DotNotation<U extends object ? U : never, TAllowPlaceholder, `${TPrefix}$.`, [...TDepth, 1]>
-						| DotNotation<U extends object ? U : never, TAllowPlaceholder, `${TPrefix}$[${string}].`, [...TDepth, 1]>
-						| DotNotation<U extends object ? U : never, TAllowPlaceholder, `${TPrefix}$[].`, [...TDepth, 1]>
+						| DotNotation<NonNullableField<U> extends object ? NonNullableField<U> : never, TAllowPlaceholder, `${TPrefix}$.`, [...TDepth, 1]>
+						| DotNotation<NonNullableField<U> extends object ? NonNullableField<U> : never, TAllowPlaceholder, `${TPrefix}$[${string}].`, [...TDepth, 1]>
+						| DotNotation<NonNullableField<U> extends object ? NonNullableField<U> : never, TAllowPlaceholder, `${TPrefix}$[].`, [...TDepth, 1]>
 					)
 					: never)
 			)
 			: {
 				[K in keyof T & string]:
-					// Filter out functions
-					| T[K] extends (...args: any[]) => any
+					T[K] extends (...args: any[]) => any
 						? never
 						: (
 							| `${TPrefix}${K}`
-							| DotNotation<T[K] extends object ? T[K] : never, TAllowPlaceholder, `${TPrefix}${K}.`, [...TDepth, 1]>
+							| DotNotation<NonNullableField<T[K]> extends object ? NonNullableField<T[K]> : never, TAllowPlaceholder, `${TPrefix}${K}.`, [...TDepth, 1]>
 						)
 			}[keyof T & string];
 
@@ -73,7 +70,7 @@ export type DotPathValue<
 									? TCheckInArray extends true ? U[TPath][] : U[TPath]
 									: never
 						: TPath extends keyof U
-							? U[TPath][]
+							? TCheckInArray extends true ? U[TPath][] : U[TPath]
 							: never
 				: TPath extends keyof T
 					? And<TIsInArray, TCheckInArray, T[TPath][], T[TPath]>
@@ -82,12 +79,12 @@ export type DotPathValue<
 export type OnlyFieldsOfTypeDotNotation<
 	T extends object,
 	TFieldType,
-	TCheckInArray extends boolean = false,
 	TAllowPlaceholder extends boolean = false,
+	TCheckInArray extends boolean = false,
 	TAssignableType = never
 > = {
-	[P in DotNotation<T, TAllowPlaceholder> as DotPathValue<T, P, TCheckInArray, TAllowPlaceholder> extends TFieldType ? P : never]?:
+	[P in DotNotation<T, TAllowPlaceholder> as NonNullableField<DotPathValue<T, P, TAllowPlaceholder, TCheckInArray>> extends TFieldType ? P : never]?:
 		[TAssignableType] extends [never]
-			? DotPathValue<T, P, TCheckInArray, TAllowPlaceholder>
+			? DotPathValue<T, P, TAllowPlaceholder, TCheckInArray>
 			: TAssignableType;
 };
