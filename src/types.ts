@@ -29,6 +29,8 @@ export type Includes<TUnion, TValue> = TValue extends TUnion ? true : false;
 // Utility to unwrap nullables and undefined
 export type NonNullableField<T> = Exclude<T, null | undefined>;
 
+export type Not<T extends boolean> = T extends true ? false : true;
+
 export type OnlyOneKey<T> = {
 	[K in keyof T]: { [P in K]: T[P] } & Partial<Record<Exclude<keyof T, K>, never>>
 }[keyof T];

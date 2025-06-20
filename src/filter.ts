@@ -1,17 +1,10 @@
-import { BsonType, BsonTypeAlias, RegExpOrString, WithId } from './bson-types.js';
+import { BsonType, BsonTypeAlias, IntegerType, RegExpOrString, WithId } from './bson-types.js';
 import { DotNotation, DotPathValue } from './dot-notation.js';
 import { Expr } from './expr.js';
 
-/**
- * It is possible to search using alternative types in mongodb e.g.
- * string types can be searched using a regex in mongo
- * array types can be searched using their element type
- */
-export declare type AlternativeType<T> = T extends ReadonlyArray<infer U> ? RegExpOrString<U> | T : RegExpOrString<T>;
-
 export declare type BitwiseFilter = number /** BinData bit mask */ | ReadonlyArray<number>;
 
-export declare type Condition<T> = FilterOperators<T> | T;
+export declare type Condition<T> = FilterOperators<T> | RegExpOrString<T>;
 
 export declare interface Document {
 	[key: string]: any
@@ -23,15 +16,11 @@ export declare type FilterOperations<T> = T extends Record<string, any> ? {
 
 export declare interface FilterOperators<TValue> {
 	$all?: TValue extends ReadonlyArray<infer U> ? ReadonlyArray<U> : never,
-	$bitsAllClear?: BitwiseFilter,
-	$bitsAllSet?: BitwiseFilter,
-	$bitsAnyClear?: BitwiseFilter,
-	$bitsAnySet?: BitwiseFilter,
-	$elemMatch?: TValue extends ReadonlyArray<infer U>
-		? U extends Record<string, any>
-			? Filter<U>
-			: never
-		: never,
+	$bitsAllClear?: TValue extends IntegerType ? BitwiseFilter : never,
+	$bitsAllSet?: TValue extends IntegerType ? BitwiseFilter : never,
+	$bitsAnyClear?: TValue extends IntegerType ? BitwiseFilter : never,
+	$bitsAnySet?: TValue extends IntegerType ? BitwiseFilter : never,
+	$elemMatch?: TValue extends ReadonlyArray<infer U> ? Filter<U> : never,
 	$eq?: TValue,
 	/**
 	 * When `true`, `$exists` matches the documents that contain the field,
@@ -51,7 +40,7 @@ export declare interface FilterOperators<TValue> {
 	$lte?: TValue,
 	$maxDistance?: number,
 	$mod?: TValue extends number ? [number, number] : never,
-	$ne?: TValue,
+	$ne?: RegExpOrString<TValue>,
 	$near?: Document,
 	$nearSphere?: Document,
 	$nin?: ReadonlyArray<TValue>,
@@ -80,6 +69,6 @@ export declare interface RootFilterOperators<TSchema> {
 export type Filter<TSchema> =
 	TSchema extends object
 	? RootFilterOperators<WithId<TSchema>> & {
-		[P in DotNotation<TSchema>]?: Condition<AlternativeType<DotPathValue<TSchema, P>>>
+		[P in DotNotation<TSchema>]?: Condition<DotPathValue<TSchema, P>>
 	}
 	: Condition<TSchema>;

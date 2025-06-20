@@ -2,7 +2,7 @@
 import { describe, it } from 'node:test';
 
 import type { DotNotation, DotPathValue, OnlyFieldsOfTypeDotNotation } from './dot-notation.js';
-import type { Assert, Equals, Includes } from './types.js';
+import type { Assert, Equals, Includes, Not } from './types.js';
 
 interface Profile {
 	active: boolean,
@@ -85,8 +85,7 @@ describe('DotNotation', () => {
 		// should include up to 9 levels
 		type T1 = Assert<Includes<T, 'a.b.c.d.e.f.g.h.i'>>;
 
-		// @ts-expect-error should NOT include 10th level (would be 'a.b.c.d.e.f.g.h.i.j')
-		type T2 = Assert<Equals<'a.b.c.d.e.f.g.h.i.j', T>>;
+		type T2 = Assert<Not<Equals<'a.b.c.d.e.f.g.h.i.j', T>>>;
 	});
 
 	it('should treat dates as simple types', () => {
