@@ -1,6 +1,8 @@
 import { BsonType, BsonTypeAlias, IntegerType, RegExpOrString, WithId } from './bson-types.js';
 import { DotNotation, DotPathValue } from './dot-notation.js';
 import { Expr } from './expr.js';
+import { GeoJson, GeoJsonMultiPolygon, GeoJsonPoint, GeoJsonPolygon } from './geo-json.js';
+import { MongoJsonSchema } from './mongo-json-schema.js';
 
 export declare type BitwiseFilter = number /** BinData bit mask */ | ReadonlyArray<number>;
 
@@ -28,21 +30,20 @@ export declare interface FilterOperators<TValue> {
 	 */
 	$exists?: boolean,
 	$expr?: Expr<TValue extends object ? TValue : object>,
-	$geoIntersects?: {
-		$geometry: Document
-	},
-	$geoWithin?: Document,
+	$geoIntersects?: TValue extends GeoJson ? { $geometry: GeoJson } : never,
+	$geoWithin?: TValue extends GeoJsonMultiPolygon | GeoJsonPolygon ? GeoJsonMultiPolygon | GeoJsonPolygon : never,
 	$gt?: TValue,
 	$gte?: TValue,
 	$in?: ReadonlyArray<TValue>,
-	$jsonSchema?: Record<string, any>,
+	$jsonSchema?: MongoJsonSchema,
 	$lt?: TValue,
 	$lte?: TValue,
-	$maxDistance?: number,
+	$maxDistance?: TValue extends [number, number] | GeoJsonPoint ? number : never,
+	$minDistance?: TValue extends [number, number] | GeoJsonPoint ? number : never,
 	$mod?: TValue extends number ? [number, number] : never,
 	$ne?: RegExpOrString<TValue>,
-	$near?: Document,
-	$nearSphere?: Document,
+	$near?: TValue extends [number, number] | GeoJsonPoint ? [number, number] | NearFilter : never,
+	$nearSphere?: TValue extends GeoJsonPoint ? NearFilter : never,
 	$nin?: ReadonlyArray<TValue>,
 	$not?: TValue extends string ? FilterOperators<TValue> | RegExp : FilterOperators<TValue>,
 	$options?: TValue extends string ? string : never,
@@ -50,6 +51,12 @@ export declare interface FilterOperators<TValue> {
 	$regex?: TValue extends string ? RegExp | string : never,
 	$size?: TValue extends ReadonlyArray<any> ? number : never,
 	$type?: BsonType | BsonTypeAlias
+};
+
+export declare interface NearFilter {
+	$geometry: GeoJsonPoint,
+	$maxDistance?: number,
+	$minDistance?: number
 }
 
 export declare interface RootFilterOperators<TSchema> {
