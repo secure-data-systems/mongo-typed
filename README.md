@@ -1,12 +1,12 @@
-# mongotypes
+# mongo-typed
 
 TypeScript utility types for building strongly-typed MongoDB filters, and updates — without adding dependencies.
 
 ## Overview
 
-`mongotypes` provides type-safe MongoDB-style query and update utilities in TypeScript. It is designed to assist with building fully-typed data repository layers or services that interact with MongoDB-like syntax, without relying on external libraries or runtime packages.
+`mongo-typed` provides type-safe MongoDB-style query and update utilities in TypeScript. It is designed to assist with building fully-typed data repository layers or services that interact with MongoDB-like syntax, without relying on external libraries or runtime packages.
 
-Whether you're working with an actual MongoDB database or implementing similar patterns in your application logic, `mongotypes` gives you strong typing for common Mongo operations like filters, and updates.
+Whether you're working with an actual MongoDB database or implementing similar patterns in your application logic, `mongo-typed` gives you strong typing for common Mongo operations like filters, and updates.
 
 ## Features
 
@@ -18,11 +18,11 @@ Whether you're working with an actual MongoDB database or implementing similar p
 ## Installation
 
 ```bash
-pnpm add mongotypes
+pnpm add mongo-typed
 # or
-npm install mongotypes
+npm install mongo-typed
 # or
-yarn add mongotypes
+yarn add mongo-typed
 ```
 
 ## Usage
@@ -30,7 +30,7 @@ yarn add mongotypes
 ### Basic Filter Type
 
 ```ts
-import { Filter } from 'mongotypes';
+import { Filter } from 'mongo-typed';
 
 type User = {
   _id: string;
@@ -52,7 +52,7 @@ const query: Filter<User> = {
 ### Basic Update Type
 
 ```ts
-import { Update } from 'mongotypes';
+import { Update } from 'mongo-typed';
 
 const update: Update<User> = {
   $set: {
@@ -75,11 +75,11 @@ Aggregation support is in active development and aims to type:
 - `$project`
 - `$sort`, `$limit`, `$lookup`, and more
 
-## Why Use `mongotypes`?
+## Why Use `mongo-typed`?
 
 TypeScript developers working with MongoDB often find themselves wishing for deeper type safety on filters and updates — especially in larger projects or those with repository abstraction layers.
 
-`mongotypes` solves this by bringing compile-time validation of Mongo-style operations, helping prevent costly runtime errors due to typos or invalid operations.
+`mongo-typed` solves this by bringing compile-time validation of Mongo-style operations, helping prevent costly runtime errors due to typos or invalid operations.
 
 ## Status
 
