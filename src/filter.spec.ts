@@ -360,6 +360,14 @@ describe('Filter', () => {
 			type T3 = Assert<Includes<ActualBoolean, { $in: boolean[] }>>;
 			type T4 = Assert<Includes<ActualObject, { $in: User['address'][] }>>;
 		});
+
+		/*
+		it('should allow arrays for array fields', () => {
+			type ActualArray = Filter<User>['tags'];
+
+			type T1 = Assert<Includes<ActualArray, { $in: string[] }>>;
+		});
+		*/
 	});
 
 	describe('$jsonSchema', () => {

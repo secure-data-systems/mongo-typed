@@ -1,4 +1,4 @@
-import { BsonType, BsonTypeNumeric, IntegerType, RegExpOrString, WithId } from './bson-types.js';
+import { BsonType, BsonTypeNumeric, IntegerType, RegExpOrString } from './bson-types.js';
 import { DotNotation, DotPathValue } from './dot-notation.js';
 import { Expr } from './expr.js';
 import { GeoJson, GeoJsonMultiPolygon, GeoJsonPoint, GeoJsonPolygon } from './geo-json.js';
@@ -59,11 +59,11 @@ export declare interface NearFilter {
 	$minDistance?: number
 }
 
-export declare interface RootFilterOperators<TSchema> {
-	$and?: Filter<TSchema>[],
+export declare interface RootFilterOperators<TSchema extends object> {
+	$and?: RootFilter<TSchema>[],
 	$comment?: Document | string,
-	$nor?: Filter<TSchema>[],
-	$or?: Filter<TSchema>[],
+	$nor?: RootFilter<TSchema>[],
+	$or?: RootFilter<TSchema>[],
 	$text?: {
 		$caseSensitive?: boolean,
 		$diacriticSensitive?: boolean,
@@ -73,9 +73,9 @@ export declare interface RootFilterOperators<TSchema> {
 	$where?: ((this: TSchema) => boolean) | string
 }
 
-export type Filter<TSchema> =
-	TSchema extends object
-	? RootFilterOperators<WithId<TSchema>> & {
+export type Filter<TSchema> = TSchema extends object ? RootFilter<TSchema> : Condition<TSchema>;
+
+export type RootFilter<TSchema extends object> =
+	RootFilterOperators<TSchema> & {
 		[P in DotNotation<TSchema>]?: Condition<DotPathValue<TSchema, P>>
-	}
-	: Condition<TSchema>;
+	};
