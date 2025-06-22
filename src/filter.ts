@@ -1,8 +1,8 @@
-import { BsonType, BsonTypeAlias, IntegerType, RegExpOrString, WithId } from './bson-types.js';
+import { BsonType, BsonTypeNumeric, IntegerType, RegExpOrString, WithId } from './bson-types.js';
 import { DotNotation, DotPathValue } from './dot-notation.js';
 import { Expr } from './expr.js';
 import { GeoJson, GeoJsonMultiPolygon, GeoJsonPoint, GeoJsonPolygon } from './geo-json.js';
-import { MongoJsonSchema } from './mongo-json-schema.js';
+import { JsonSchema } from './json-schema/index.js';
 
 export declare type BitwiseFilter = number /** BinData bit mask */ | ReadonlyArray<number>;
 
@@ -35,7 +35,7 @@ export declare interface FilterOperators<TValue> {
 	$gt?: TValue,
 	$gte?: TValue,
 	$in?: ReadonlyArray<TValue>,
-	$jsonSchema?: MongoJsonSchema,
+	$jsonSchema?: JsonSchema,
 	$lt?: TValue,
 	$lte?: TValue,
 	$maxDistance?: TValue extends [number, number] | GeoJsonPoint ? number : never,
@@ -50,7 +50,7 @@ export declare interface FilterOperators<TValue> {
 	$rand?: Record<string, never>,
 	$regex?: TValue extends string ? RegExp | string : never,
 	$size?: TValue extends ReadonlyArray<any> ? number : never,
-	$type?: BsonType | BsonTypeAlias
+	$type?: BsonType | BsonTypeNumeric
 };
 
 export declare interface NearFilter {

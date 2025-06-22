@@ -1,6 +1,30 @@
 import { EnhancedOmit } from './types.js';
 
-export declare const BsonType: Readonly<{
+export const BsonType = {
+	array: 'array',
+	binData: 'binData',
+	bool: 'bool',
+	date: 'date',
+	dbPointer: 'dbPointer',
+	decimal: 'decimal',
+	double: 'double',
+	int: 'int',
+	javascript: 'javascript',
+	javascriptWithScope: 'javascriptWithScope',
+	long: 'long',
+	maxKey: 'maxKey',
+	minKey: 'minKey',
+	null: 'null',
+	object: 'object',
+	objectId: 'objectId',
+	regex: 'regex',
+	string: 'string',
+	symbol: 'symbol',
+	timestamp: 'timestamp',
+	undefined: 'undefined'
+} as const;
+
+export declare const BsonTypeNumeric: Readonly<{
 	readonly array: 4,
 	readonly binData: 5,
 	readonly bool: 8,
@@ -24,19 +48,13 @@ export declare const BsonType: Readonly<{
 	readonly undefined: 6
 }>;
 
-export declare type BsonType = (typeof BsonType)[keyof typeof BsonType];
+export declare type BsonType = typeof BsonType[keyof typeof BsonType];
 
-export declare type BsonTypeAlias = keyof typeof BsonType;
+export declare type BsonTypeNumeric = (typeof BsonTypeNumeric)[keyof typeof BsonTypeNumeric];
 
 export declare type IntegerType = bigint | number;
 
 export declare type NumericType = IntegerType;
-
-export declare interface ObjectIdLike {
-	__id?: string,
-	id: string | Uint8Array,
-	toHexString(): string
-}
 
 export declare type RegExpOrString<T> = T extends string ? RegExp | T : T;
 

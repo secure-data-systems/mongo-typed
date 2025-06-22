@@ -1,10 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { describe, it } from 'node:test';
 
-import type { DotNotation, DotPathValue, OnlyFieldsOfTypeDotNotation } from './dot-notation.js';
 import type { Assert, Equals, Includes, Not } from './types.js';
 
-import { Condition, Filter, FilterOperators, NearFilter } from './filter.js';
+import { Condition, Filter, NearFilter } from './filter.js';
 import { GeoJson, GeoJsonMultiPolygon, GeoJsonPoint, GeoJsonPolygon } from './geo-json.js';
 
 interface Role {
@@ -363,7 +362,6 @@ describe('Filter', () => {
 		});
 	});
 
-	/*
 	describe('$jsonSchema', () => {
 		it('should allow $jsonSchema with bsonType string', () => {
 			type Actual = Filter<User>['name'];
@@ -377,7 +375,7 @@ describe('Filter', () => {
 			type Actual = Filter<User>['tags'];
 
 			type T1 = Assert<Includes<Actual, {
-				$jsonSchema: { bsonType: ['array', 'null'] }
+				$jsonSchema: { bsonType: ['array'] }
 			}>>;
 		});
 
@@ -417,7 +415,6 @@ describe('Filter', () => {
 			}>>>;
 		});
 	});
-	*/
 
 	describe('$lt', () => {
 		it('should allow $lt operator for all fields', () => {
