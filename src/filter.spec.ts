@@ -317,6 +317,14 @@ describe('Filter', () => {
 			type T20 = Assert<Not<Includes<ActualObject, { $gt: number }>>>;
 			type T21 = Assert<Not<Includes<ActualObject, { $gt: boolean }>>>;
 		});
+
+		it('should match on array items instead of the array itself', () => {
+			type ActualStringArray = Filter<User>['tags'];
+			type ActualObjectArray = Filter<User>['roles'];
+
+			type T1 = Assert<Includes<ActualStringArray, { $gt: string }>>;
+			type T2 = Assert<Includes<ActualObjectArray, { $gt: Role }>>;
+		});
 	});
 
 	describe('$gte', () => {
@@ -346,6 +354,14 @@ describe('Filter', () => {
 			type T20 = Assert<Not<Includes<ActualObject, { $gte: number }>>>;
 			type T21 = Assert<Not<Includes<ActualObject, { $gte: boolean }>>>;
 		});
+
+		it('should match on array items instead of the array itself', () => {
+			type ActualStringArray = Filter<User>['tags'];
+			type ActualObjectArray = Filter<User>['roles'];
+
+			type T1 = Assert<Includes<ActualStringArray, { $gte: string }>>;
+			type T2 = Assert<Includes<ActualObjectArray, { $gte: Role }>>;
+		});
 	});
 
 	describe('$in', () => {
@@ -356,18 +372,21 @@ describe('Filter', () => {
 			type ActualObject = Filter<User>['address'];
 
 			type T1 = Assert<Includes<ActualString, { $in: string[] }>>;
-			type T2 = Assert<Includes<ActualNumber, { $in: number[] }>>;
-			type T3 = Assert<Includes<ActualBoolean, { $in: boolean[] }>>;
-			type T4 = Assert<Includes<ActualObject, { $in: User['address'][] }>>;
+			type T2 = Assert<Not<Includes<ActualString, { $in: string[][] }>>>;
+			type T3 = Assert<Includes<ActualNumber, { $in: number[] }>>;
+			type T4 = Assert<Not<Includes<ActualNumber, { $in: number[][] }>>>;
+			type T5 = Assert<Includes<ActualBoolean, { $in: boolean[] }>>;
+			type T6 = Assert<Not<Includes<ActualBoolean, { $in: boolean[][] }>>>;
+			type T7 = Assert<Includes<ActualObject, { $in: User['address'][] }>>;
+			type T8 = Assert<Not<Includes<ActualObject, { $in: User['address'][][] }>>>;
 		});
 
-		/*
-		it('should allow arrays for array fields', () => {
+		it('should allow both arrays and array of arrays for array fields', () => {
 			type ActualArray = Filter<User>['tags'];
 
 			type T1 = Assert<Includes<ActualArray, { $in: string[] }>>;
+			type T2 = Assert<Includes<ActualArray, { $in: string[][] }>>;
 		});
-		*/
 	});
 
 	describe('$jsonSchema', () => {
@@ -451,6 +470,14 @@ describe('Filter', () => {
 			type T20 = Assert<Not<Includes<ActualObject, { $lt: number }>>>;
 			type T21 = Assert<Not<Includes<ActualObject, { $lt: boolean }>>>;
 		});
+
+		it('should match on array items instead of the array itself', () => {
+			type ActualStringArray = Filter<User>['tags'];
+			type ActualObjectArray = Filter<User>['roles'];
+
+			type T1 = Assert<Includes<ActualStringArray, { $lt: string }>>;
+			type T2 = Assert<Includes<ActualObjectArray, { $lt: Role }>>;
+		});
 	});
 
 	describe('$lte', () => {
@@ -479,6 +506,14 @@ describe('Filter', () => {
 			type T19 = Assert<Not<Includes<ActualObject, { $lte: string }>>>;
 			type T20 = Assert<Not<Includes<ActualObject, { $lte: number }>>>;
 			type T21 = Assert<Not<Includes<ActualObject, { $lte: boolean }>>>;
+		});
+
+		it('should match on array items instead of the array itself', () => {
+			type ActualStringArray = Filter<User>['tags'];
+			type ActualObjectArray = Filter<User>['roles'];
+
+			type T1 = Assert<Includes<ActualStringArray, { $lte: string }>>;
+			type T2 = Assert<Includes<ActualObjectArray, { $lte: Role }>>;
 		});
 	});
 
@@ -606,6 +641,31 @@ describe('Filter', () => {
 
 			type T1 = Assert<Not<Includes<Actual, { $nearSphere: [number, number] }>>>;
 			type T2 = Assert<Not<Includes<Actual, { $nearSphere: NearFilter }>>>;
+		});
+	});
+
+	describe('$nin', () => {
+		it('should allow $nin operator for primitive fields', () => {
+			type ActualString = Filter<User>['name'];
+			type ActualNumber = Filter<User>['age'];
+			type ActualBoolean = Filter<User>['isHuman'];
+			type ActualObject = Filter<User>['address'];
+
+			type T1 = Assert<Includes<ActualString, { $nin: string[] }>>;
+			type T2 = Assert<Not<Includes<ActualString, { $nin: string[][] }>>>;
+			type T3 = Assert<Includes<ActualNumber, { $nin: number[] }>>;
+			type T4 = Assert<Not<Includes<ActualNumber, { $nin: number[][] }>>>;
+			type T5 = Assert<Includes<ActualBoolean, { $nin: boolean[] }>>;
+			type T6 = Assert<Not<Includes<ActualBoolean, { $nin: boolean[][] }>>>;
+			type T7 = Assert<Includes<ActualObject, { $nin: User['address'][] }>>;
+			type T8 = Assert<Not<Includes<ActualObject, { $nin: User['address'][][] }>>>;
+		});
+
+		it('should allow both arrays and array of arrays for array fields', () => {
+			type ActualArray = Filter<User>['tags'];
+
+			type T1 = Assert<Includes<ActualArray, { $nin: string[] }>>;
+			type T2 = Assert<Includes<ActualArray, { $nin: string[][] }>>;
 		});
 	});
 

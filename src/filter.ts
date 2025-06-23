@@ -32,19 +32,19 @@ export declare interface FilterOperators<TValue> {
 	$expr?: Expr<TValue extends object ? TValue : object>,
 	$geoIntersects?: TValue extends GeoJson ? { $geometry: GeoJson } : never,
 	$geoWithin?: TValue extends GeoJsonMultiPolygon | GeoJsonPolygon ? GeoJsonMultiPolygon | GeoJsonPolygon : never,
-	$gt?: TValue,
-	$gte?: TValue,
-	$in?: ReadonlyArray<TValue>,
+	$gt?: NonNullable<TValue> extends ReadonlyArray<infer U> ? U : TValue,
+	$gte?: NonNullable<TValue> extends ReadonlyArray<infer U> ? U : TValue,
+	$in?: NonNullable<TValue> extends ReadonlyArray<infer U> ? ReadonlyArray<TValue> | ReadonlyArray<U> : ReadonlyArray<TValue>,
 	$jsonSchema?: JsonSchema,
-	$lt?: TValue,
-	$lte?: TValue,
+	$lt?: NonNullable<TValue> extends ReadonlyArray<infer U> ? U : TValue,
+	$lte?: NonNullable<TValue> extends ReadonlyArray<infer U> ? U : TValue,
 	$maxDistance?: TValue extends [number, number] | GeoJsonPoint ? number : never,
 	$minDistance?: TValue extends [number, number] | GeoJsonPoint ? number : never,
 	$mod?: TValue extends number ? [number, number] : never,
-	$ne?: RegExpOrString<TValue>,
+	$ne?: NonNullable<TValue> extends ReadonlyArray<infer U> ? RegExpOrString<TValue> | RegExpOrString<U> : RegExpOrString<TValue>,
 	$near?: TValue extends [number, number] | GeoJsonPoint ? [number, number] | NearFilter : never,
 	$nearSphere?: TValue extends GeoJsonPoint ? NearFilter : never,
-	$nin?: ReadonlyArray<TValue>,
+	$nin?: NonNullable<TValue> extends ReadonlyArray<infer U> ? ReadonlyArray<TValue> | ReadonlyArray<U> : ReadonlyArray<TValue>,
 	$not?: TValue extends string ? FilterOperators<TValue> | RegExp : FilterOperators<TValue>,
 	$options?: TValue extends string ? string : never,
 	$rand?: Record<string, never>,
@@ -59,11 +59,11 @@ export declare interface NearFilter {
 	$minDistance?: number
 }
 
-export declare interface RootFilterOperators<TSchema extends object> {
-	$and?: RootFilter<TSchema>[],
+export declare interface ObjFilterOperators<TSchema extends object> {
+	$and?: ObjFilter<TSchema>[],
 	$comment?: Document | string,
-	$nor?: RootFilter<TSchema>[],
-	$or?: RootFilter<TSchema>[],
+	$nor?: ObjFilter<TSchema>[],
+	$or?: ObjFilter<TSchema>[],
 	$text?: {
 		$caseSensitive?: boolean,
 		$diacriticSensitive?: boolean,
@@ -73,9 +73,9 @@ export declare interface RootFilterOperators<TSchema extends object> {
 	$where?: ((this: TSchema) => boolean) | string
 }
 
-export type Filter<TSchema> = TSchema extends object ? RootFilter<TSchema> : Condition<TSchema>;
+export type Filter<TSchema> = TSchema extends object ? ObjFilter<TSchema> : Condition<TSchema>;
 
-export type RootFilter<TSchema extends object> =
-	RootFilterOperators<TSchema> & {
+export type ObjFilter<TSchema extends object> =
+	ObjFilterOperators<TSchema> & {
 		[P in DotNotation<TSchema>]?: Condition<DotPathValue<TSchema, P>>
 	};
