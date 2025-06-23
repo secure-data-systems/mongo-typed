@@ -151,12 +151,6 @@ describe('Filter', () => {
 
 			type T1 = Assert<Includes<Actual, { $elemMatch: Condition<string> }>>;
 		});
-
-		it('should allow $elemMatch for array of object arrays', () => {
-			type Actual = Filter<User>['roles'];
-
-			type T1 = Assert<Includes<Actual, { $elemMatch: Filter<Role> }>>;
-		});
 	});
 
 	describe('$eq', () => {

@@ -19,6 +19,22 @@ export type And<
 
 export type Assert<T extends true> = T;
 
+export type DeepPartial<T> =
+	// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+	T extends Function
+		? T
+		: T extends Array<infer U>
+			? Array<DeepPartial<U>>
+			: T extends ReadonlyArray<infer U>
+				? ReadonlyArray<DeepPartial<U>>
+				: T extends Map<infer K, infer V>
+					? Map<DeepPartial<K>, DeepPartial<V>>
+					: T extends Set<infer U>
+						? Set<DeepPartial<U>>
+						: T extends object
+							? { [K in keyof T]?: DeepPartial<T[K]> }
+							: T;
+
 // Utility types for compile-time assertions
 export type Equals<TExpected, TActual> =
 	(<V>() => V extends TExpected ? 1 : 2) extends

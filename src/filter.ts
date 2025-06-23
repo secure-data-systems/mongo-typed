@@ -1,12 +1,23 @@
-import { BsonType, BsonTypeNumeric, IntegerType, RegExpOrString } from './bson-types.js';
+import { BsonType, BsonTypeNumeric, IntegerType } from './bson-types.js';
 import { DotNotation, DotPathValue } from './dot-notation.js';
 import { Expr } from './expr.js';
 import { GeoJson, GeoJsonMultiPolygon, GeoJsonPoint, GeoJsonPolygon } from './geo-json.js';
 import { JsonSchema } from './json-schema/index.js';
+import { And, DeepPartial } from './types.js';
+
+export declare type AlternativeTypes<T, TPartial extends boolean = false>
+	= T extends string
+		? RegExp | T
+		: And<
+			T extends object ? true : false,
+			TPartial,
+			DeepPartial<T>,
+			T
+		>;
 
 export declare type BitwiseFilter = number /** BinData bit mask */ | ReadonlyArray<number>;
 
-export declare type Condition<T> = FilterOperators<T> | RegExpOrString<T>;
+export declare type Condition<T, TPartial extends boolean = false> = AlternativeTypes<T, TPartial> | FilterOperators<T>;
 
 export declare interface Document {
 	[key: string]: any
@@ -14,7 +25,7 @@ export declare interface Document {
 
 export declare type FilterOperations<T> = T extends Record<string, any> ? {
 	[key in keyof T]?: FilterOperators<T[key]>;
-} : FilterOperators<T>;
+} : FilterOperators<T>; ;
 
 export declare interface FilterOperators<TValue> {
 	$all?: TValue extends ReadonlyArray<infer U> ? ReadonlyArray<U> : never,
@@ -41,7 +52,7 @@ export declare interface FilterOperators<TValue> {
 	$maxDistance?: TValue extends [number, number] | GeoJsonPoint ? number : never,
 	$minDistance?: TValue extends [number, number] | GeoJsonPoint ? number : never,
 	$mod?: TValue extends number ? [number, number] : never,
-	$ne?: NonNullable<TValue> extends ReadonlyArray<infer U> ? RegExpOrString<TValue> | RegExpOrString<U> : RegExpOrString<TValue>,
+	$ne?: NonNullable<TValue> extends ReadonlyArray<infer U> ? AlternativeTypes<TValue> | AlternativeTypes<U> : AlternativeTypes<TValue>,
 	$near?: TValue extends [number, number] | GeoJsonPoint ? [number, number] | NearFilter : never,
 	$nearSphere?: TValue extends GeoJsonPoint ? NearFilter : never,
 	$nin?: NonNullable<TValue> extends ReadonlyArray<infer U> ? ReadonlyArray<TValue> | ReadonlyArray<U> : ReadonlyArray<TValue>,
@@ -51,7 +62,7 @@ export declare interface FilterOperators<TValue> {
 	$regex?: TValue extends string ? RegExp | string : never,
 	$size?: TValue extends ReadonlyArray<any> ? number : never,
 	$type?: BsonType | BsonTypeNumeric
-};
+}
 
 export declare interface NearFilter {
 	$geometry: GeoJsonPoint,
@@ -77,5 +88,5 @@ export type Filter<TSchema> = TSchema extends object ? ObjFilter<TSchema> : Cond
 
 export type ObjFilter<TSchema extends object> =
 	ObjFilterOperators<TSchema> & {
-		[P in DotNotation<TSchema>]?: Condition<DotPathValue<TSchema, P>>
+		[P in DotNotation<TSchema>]?: Condition<DotPathValue<TSchema, P>, true>
 	};

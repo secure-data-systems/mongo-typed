@@ -56,8 +56,6 @@ export declare type IntegerType = bigint | number;
 
 export declare type NumericType = IntegerType;
 
-export declare type RegExpOrString<T> = T extends string ? RegExp | T : T;
-
 /** Add an _id field to an object shaped type */
 export declare type WithId<TSchema> = EnhancedOmit<TSchema, '_id'> & {
 	_id: string
