@@ -28,9 +28,6 @@ export type Includes<TUnion, TValue> = TValue extends TUnion ? true : false;
 
 export type MaybeReadonlyArray<T> = Array<T> | ReadonlyArray<T>;
 
-// Utility to unwrap nullables and undefined
-export type NonNullableField<T> = Exclude<T, null | undefined>;
-
 export type Not<T extends boolean> = T extends true ? false : true;
 
 export type OnlyOneKey<T> = {
