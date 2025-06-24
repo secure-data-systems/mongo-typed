@@ -2,6 +2,7 @@ import { BsonType, BsonTypeNumeric, IntegerType } from './bson-types.js';
 import { DotNotation, DotPathValue } from './dot-notation.js';
 import { Expr } from './expr.js';
 import { GeoJson, GeoJsonMultiPolygon, GeoJsonPoint, GeoJsonPolygon } from './geo-json.js';
+import { DeepPartialButId, Identifiable } from './identifiable.js';
 import { JsonSchema } from './json-schema/index.js';
 import { And, DeepPartial } from './types.js';
 
@@ -11,7 +12,7 @@ export declare type AlternativeTypes<T, TPartial extends boolean = false>
 		: And<
 			T extends object ? true : false,
 			TPartial,
-			DeepPartial<T>,
+			T extends Identifiable ? DeepPartialButId<T> : DeepPartial<T>,
 			T
 		>;
 
@@ -46,7 +47,6 @@ export declare interface FilterOperators<TValue> {
 	$gt?: NonNullable<TValue> extends ReadonlyArray<infer U> ? U : TValue,
 	$gte?: NonNullable<TValue> extends ReadonlyArray<infer U> ? U : TValue,
 	$in?: NonNullable<TValue> extends ReadonlyArray<infer U> ? ReadonlyArray<TValue> | ReadonlyArray<U> : ReadonlyArray<TValue>,
-	$jsonSchema?: JsonSchema,
 	$lt?: NonNullable<TValue> extends ReadonlyArray<infer U> ? U : TValue,
 	$lte?: NonNullable<TValue> extends ReadonlyArray<infer U> ? U : TValue,
 	$maxDistance?: TValue extends [number, number] | GeoJsonPoint ? number : never,
@@ -73,6 +73,7 @@ export declare interface NearFilter {
 export declare interface ObjFilterOperators<TSchema extends object> {
 	$and?: ObjFilter<TSchema>[],
 	$comment?: Document | string,
+	$jsonSchema?: JsonSchema,
 	$nor?: ObjFilter<TSchema>[],
 	$or?: ObjFilter<TSchema>[],
 	$text?: {

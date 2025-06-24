@@ -385,7 +385,7 @@ describe('Filter', () => {
 
 	describe('$jsonSchema', () => {
 		it('should allow $jsonSchema with bsonType string', () => {
-			type Actual = Filter<User>['name'];
+			type Actual = Filter<User>;
 
 			type T1 = Assert<Includes<Actual, {
 				$jsonSchema: { bsonType: 'string' }
@@ -393,7 +393,7 @@ describe('Filter', () => {
 		});
 
 		it('should allow $jsonSchema with bsonType array', () => {
-			type Actual = Filter<User>['tags'];
+			type Actual = Filter<User>;
 
 			type T1 = Assert<Includes<Actual, {
 				$jsonSchema: { bsonType: ['array'] }
@@ -401,7 +401,7 @@ describe('Filter', () => {
 		});
 
 		it('should allow $jsonSchema with properties', () => {
-			type Actual = Filter<User>['name'];
+			type Actual = Filter<User>;
 
 			type T1 = Assert<Includes<Actual, {
 				$jsonSchema: {
@@ -415,7 +415,7 @@ describe('Filter', () => {
 		});
 
 		it('should allow $jsonSchema with nested items for arrays', () => {
-			type Actual = Filter<User>['tags'];
+			type Actual = Filter<User>;
 
 			type T1 = Assert<Includes<Actual, {
 				$jsonSchema: {
@@ -427,7 +427,7 @@ describe('Filter', () => {
 		});
 
 		it('should NOT allow $jsonSchema with unsupported keywords like const', () => {
-			type Actual = Filter<User>['name'];
+			type Actual = Filter<User>;
 
 			type T1 = Assert<Not<Includes<Actual, {
 				$jsonSchema: {
