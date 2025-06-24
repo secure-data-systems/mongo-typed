@@ -57,23 +57,37 @@ export type DotPathValue<
 							? DotPathValue<U, Rest, TAllowPlaceholder, TCheckInArray, true, [...TDepth, 1]>
 							: never
 						: never
-				: Key extends keyof T
-					? DotPathValue<NonNullable<T[Key]>, Rest, TAllowPlaceholder, TCheckInArray, TIsInArray, [...TDepth, 1]>
+				: Key extends string
+					? T extends unknown
+						? Key extends keyof T
+							? DotPathValue<NonNullable<T[Key]>, Rest, TAllowPlaceholder, TCheckInArray, TIsInArray, [...TDepth, 1]>
+							: T extends object
+								? T[keyof T] extends infer V
+									? V extends object
+										? DotPathValue<V, Rest, TAllowPlaceholder, TCheckInArray, TIsInArray, [...TDepth, 1]>
+										: never
+									: never
+								: never
+						: never
 					: never
 			: T extends readonly (infer U)[]
-				? TPath extends `${number}`
-					? And<TIsInArray, TCheckInArray, U[], U>
+				? U extends unknown
+					? TPath extends `${number}`
+						? And<TIsInArray, TCheckInArray, U[], U>
 						: TAllowPlaceholder extends true
 							? TPath extends `$[${string}]` | `$[]` | `$`
 								? TCheckInArray extends true ? U[] : U
 								: TPath extends keyof U
 									? TCheckInArray extends true ? U[TPath][] : U[TPath]
 									: never
-						: TPath extends keyof U
-							? TCheckInArray extends true ? U[TPath][] : U[TPath]
-							: never
-				: TPath extends keyof T
-					? And<TIsInArray, TCheckInArray, T[TPath][], T[TPath]>
+							: TPath extends keyof U
+								? TCheckInArray extends true ? U[TPath][] : U[TPath]
+								: never
+					: never
+				: T extends unknown
+					? TPath extends keyof T
+						? And<TIsInArray, TCheckInArray, T[TPath][], T[TPath]>
+						: never
 					: never;
 
 export type OnlyFieldsOfTypeDotNotation<
