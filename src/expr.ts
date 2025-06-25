@@ -62,8 +62,7 @@ export type DateExpr<TInput extends object> =
 	| FieldRef<TInput>
 	| { $dateFromParts: { day?: NumericExpr<TInput>, hour?: NumericExpr<TInput>, millisecond?: NumericExpr<TInput>, minute?: NumericExpr<TInput>, month?: NumericExpr<TInput>, second?: NumericExpr<TInput>, timezone?: StringExpr<TInput>, year: NumericExpr<TInput> } }
 	| { $dateFromString: { dateString: StringExpr<TInput>, format?: StringExpr<TInput>, onError?: Expr<TInput>, onNull?: Expr<TInput>, timezone?: StringExpr<TInput> } }
-	| { $literal: Date }
-;
+	| { $literal: Date };
 
 export interface DatePartsExpr<TInput extends object> {
 	$dateToParts: { date: DateExpr<TInput>, iso8601?: BooleanExpr<TInput>, timezone?: StringExpr<TInput> }

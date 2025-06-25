@@ -11,57 +11,55 @@ export declare type FieldsAndValues<
 	TCheckInArray extends boolean = false
 > = Readonly<{
 	[P in DotNotation<EnhancedOmit<TSchema, '_id'>, TAllowPlaceholder>]?:
-		DotPathValue<EnhancedOmit<TSchema, '_id'>, P, TAllowPlaceholder, TCheckInArray> extends infer Value
-			? UnwrapArray<Value> extends infer Unwrapped
-				? Unwrapped extends Identifiable
-					? RewrapArray<Value, PartialButId<Unwrapped>>
-					: Value
-				: never
-			: never;
+	DotPathValue<EnhancedOmit<TSchema, '_id'>, P, TAllowPlaceholder, TCheckInArray> extends infer Value
+		? UnwrapArray<Value> extends infer Unwrapped
+			? Unwrapped extends Identifiable
+				? RewrapArray<Value, PartialButId<Unwrapped>>
+				: Value
+			: never
+		: never;
 }>;
 
 export declare type PullAllOperator<T extends object> = {
 	[P in DotNotation<T> as DotPathValue<T, P> extends ReadonlyArray<any> | undefined ? P : never]?:
-		NonNullable<DotPathValue<T, P>> extends ReadonlyArray<infer Item>
-			? Item extends Identifiable
-				? ReadonlyArray<PartialButId<Item>> : ReadonlyArray<Item>
+	NonNullable<DotPathValue<T, P>> extends ReadonlyArray<infer Item>
+		? Item extends Identifiable
+			? ReadonlyArray<PartialButId<Item>> : ReadonlyArray<Item>
 		: never;
 };
 
 export declare type PullOperator<T extends object> = {
 	[P in DotNotation<T> as DotPathValue<T, P> extends ReadonlyArray<any> | undefined ? P : never]?:
-		NonNullable<DotPathValue<T, P>> extends ReadonlyArray<infer Item>
-			? Filter<Item>
+	NonNullable<DotPathValue<T, P>> extends ReadonlyArray<infer Item>
+		? Filter<Item>
 		: never;
 };
 
 export declare type PushOperator<T extends object> = {
 	[P in DotNotation<T> as DotPathValue<T, P> extends ReadonlyArray<any> | undefined ? P : never]?:
-		NonNullable<DotPathValue<T, P>> extends ReadonlyArray<infer Item>
-			? Item extends Identifiable
-			? PartialButId<Item> |
-			{
-				$each: PartialButId<Item>[],
-				$position?: number,
-				$slice?: number,
-				$sort?: -1 | 1 | Partial<Record<DotNotation<PartialButId<Item>>, -1 | 1>>
-			}
-			: Item |
-				{
-					$each: Item[],
-					$position?: number,
-					$slice?: number,
-					$sort?: Item extends object ? -1 | 1 | Partial<Record<DotNotation<Item>, -1 | 1>> : -1 | 1
-				}
+	NonNullable<DotPathValue<T, P>> extends ReadonlyArray<infer Item>
+		? Item extends Identifiable
+		? PartialButId<Item> | {
+			$each: PartialButId<Item>[],
+			$position?: number,
+			$slice?: number,
+			$sort?: -1 | 1 | Partial<Record<DotNotation<PartialButId<Item>>, -1 | 1>>
+		}
+		: Item | {
+			$each: Item[],
+			$position?: number,
+			$slice?: number,
+			$sort?: Item extends object ? -1 | 1 | Partial<Record<DotNotation<Item>, -1 | 1>> : -1 | 1
+		}
 		: never;
 };
 
 export declare type SetFields<T extends object> = {
 	[P in DotNotation<T> as DotPathValue<T, P> extends ReadonlyArray<any> | undefined ? P : never]?:
-		NonNullable<DotPathValue<T, P>> extends ReadonlyArray<infer Item>
-			? Item extends Identifiable
-				? PartialButId<Item> | { $each: ReadonlyArray<PartialButId<Item>> }
-				: Item | { $each: ReadonlyArray<Item> }
+	NonNullable<DotPathValue<T, P>> extends ReadonlyArray<infer Item>
+		? Item extends Identifiable
+			? PartialButId<Item> | { $each: ReadonlyArray<PartialButId<Item>> }
+			: Item | { $each: ReadonlyArray<Item> }
 		: never;
 };
 

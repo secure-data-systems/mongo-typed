@@ -6,8 +6,8 @@ import { DeepPartialButId, Identifiable } from './identifiable.js';
 import { JsonSchema } from './json-schema/index.js';
 import { And, DeepPartial } from './types.js';
 
-export declare type AlternativeTypes<T, TPartial extends boolean = false>
-	= T extends string
+export declare type AlternativeTypes<T, TPartial extends boolean = false> =
+	T extends string
 		? RegExp | T
 		: And<
 			T extends object ? true : false,

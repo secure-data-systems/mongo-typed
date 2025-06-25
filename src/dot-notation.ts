@@ -28,12 +28,12 @@ export type DotNotation<
 			)
 			: {
 				[K in keyof T & string]:
-					T[K] extends (...args: any[]) => any
-						? never
-						: (
-							| `${TPrefix}${K}`
-							| DotNotation<NonNullable<T[K]> extends object ? NonNullable<T[K]> : never, TAllowPlaceholder, `${TPrefix}${K}.`, [...TDepth, 1]>
-						)
+				T[K] extends (...args: any[]) => any
+					? never
+					: (
+						| `${TPrefix}${K}`
+						| DotNotation<NonNullable<T[K]> extends object ? NonNullable<T[K]> : never, TAllowPlaceholder, `${TPrefix}${K}.`, [...TDepth, 1]>
+					)
 			}[keyof T & string];
 
 /** Resolves a dot-notated path to the corresponding type, including array indexing */
@@ -98,7 +98,7 @@ export type OnlyFieldsOfTypeDotNotation<
 	TAssignableType = never
 > = {
 	[P in DotNotation<T, TAllowPlaceholder> as NonNullable<DotPathValue<T, P, TAllowPlaceholder, TCheckInArray>> extends TFieldType ? P : never]?:
-		[TAssignableType] extends [never]
-			? DotPathValue<T, P, TAllowPlaceholder, TCheckInArray>
-			: TAssignableType;
+	[TAssignableType] extends [never]
+		? DotPathValue<T, P, TAllowPlaceholder, TCheckInArray>
+		: TAssignableType;
 };
