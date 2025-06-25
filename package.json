@@ -4,6 +4,10 @@
 	"description": "Provides type-safe MongoDB-style query and update utilities in TypeScript. It is designed to assist with building fully-typed data repository layers or services that interact with MongoDB-like syntax, without relying on external libraries or runtime packages.",
 	"author": "SecureDataSystems",
 	"license": "MIT",
+	"repository": {
+    "type": "git",
+    "url": "git+https://github.com/secure-data-systems/mongo-typed.git"
+  },
 	"type": "module",
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
