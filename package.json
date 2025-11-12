@@ -32,11 +32,11 @@
     "test": "glob -c \"tsx --tsconfig ./tsconfig.build.json --test\" \"./src/**/*.{spec,test}.ts\""
 	},
 	"devDependencies": {
-		"@secure-data-systems/eslint-config": "^1.0.7",
-		"@secure-data-systems/tsconfig": "^1.0.1",
-		"@types/node": "^24.0.13",
+		"@secure-data-systems/eslint-config": "^1.0.26",
+		"@secure-data-systems/tsconfig": "^1.0.2",
+		"@types/node": "^24.10.1",
 		"glob": "^11.0.3",
-		"tsx": "^4.20.3",
-		"typescript": "^5.8.3"
+		"tsx": "^4.20.6",
+		"typescript": "^5.9.3"
 	}
 }
