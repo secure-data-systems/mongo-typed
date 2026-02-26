@@ -48,7 +48,7 @@ export interface ConditionalExpr<TInput extends object> {
 			then: Expr<TInput>
 		},
 	$ifNull?: [Expr<TInput>, Expr<TInput>],
-	$switch: {
+	$switch?: {
 		branches: {
 			case: Expr<TInput>,
 			then: Expr<TInput>
