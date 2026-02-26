@@ -46,21 +46,21 @@ export interface JsonSchema<
 	TValue = any,
 	TBsonType = TValue extends boolean ? 'bool'
 		: TValue extends null ? 'null'
-		: TValue extends number ? 'decimal' | 'double' | 'int' | 'long'
-		: TValue extends string ? 'string'
-		: TValue extends Date ? 'date' | 'timestamp'
-		: TValue extends ArrayBuffer | Buffer | Uint8Array ? 'binData'
-		: TValue extends RegExp ? 'regex'
-		: TValue extends unknown[] ? 'array'
-		: TValue extends Record<number | string, unknown> ? 'object'
-		: BsonType,
+			: TValue extends number ? 'decimal' | 'double' | 'int' | 'long'
+				: TValue extends string ? 'string'
+					: TValue extends Date ? 'date' | 'timestamp'
+						: TValue extends ArrayBuffer | Buffer | Uint8Array ? 'binData'
+							: TValue extends RegExp ? 'regex'
+								: TValue extends unknown[] ? 'array'
+									: TValue extends Record<number | string, unknown> ? 'object'
+										: BsonType,
 	TSchemaType = TValue extends boolean ? 'boolean'
 		: TValue extends null ? 'null'
-		: TValue extends number ? 'number'
-		: TValue extends string ? 'string'
-		: TValue extends unknown[] ? 'array'
-		: TValue extends Record<number | string, unknown> ? 'object'
-		: JsonSchemaType
+			: TValue extends number ? 'number'
+				: TValue extends string ? 'string'
+					: TValue extends unknown[] ? 'array'
+						: TValue extends Record<number | string, unknown> ? 'object'
+							: JsonSchemaType
 > {
 	/**
    * This keyword is reserved for comments from schema authors to readers or
@@ -178,7 +178,7 @@ export interface JsonSchema<
    * An instance validates successfully against this keyword if it validates
    * successfully against all schemas defined by this keyword's value.
    */
-	allOf?: MaybeReadonlyArray<boolean | JsonSchema<TValue, TSchemaType>>,
+	allOf?: MaybeReadonlyArray<boolean | JsonSchema<TValue, TBsonType, TSchemaType>>,
 
 	/**
    * This keyword's value MUST be a non-empty array. Each item of the array
@@ -188,7 +188,7 @@ export interface JsonSchema<
    * successfully against at least one schema defined by this keyword's
    * value.
    */
-	anyOf?: MaybeReadonlyArray<boolean | JsonSchema<TValue, TSchemaType>>,
+	anyOf?: MaybeReadonlyArray<boolean | JsonSchema<TValue, TBsonType, TSchemaType>>,
 
 	/**
    * The value of this keyword MUST be either a string or an array. If it is
@@ -207,7 +207,7 @@ export interface JsonSchema<
    * An array instance is valid against `contains` if at least one of its
    * elements is valid against the given schema.
    */
-	contains?: boolean | JsonSchema<TValue, TSchemaType>,
+	contains?: boolean | JsonSchema<TValue, TBsonType, TSchemaType>,
 
 	/**
    * This keyword can be used to supply a default JSON value associated with
@@ -422,7 +422,7 @@ export interface JsonSchema<
    * An instance is valid against this keyword if it fails to validate
    * successfully against the schema defined by this keyword.
    */
-	not?: boolean | JsonSchema<TValue, TSchemaType>,
+	not?: boolean | JsonSchema<TValue, TBsonType, TSchemaType>,
 
 	/**
    * This keyword's value MUST be a non-empty array. Each item of the array
@@ -431,7 +431,7 @@ export interface JsonSchema<
    * An instance validates successfully against this keyword if it validates
    * successfully against exactly one schema defined by this keyword's value.
    */
-	oneOf?: MaybeReadonlyArray<boolean | JsonSchema<TValue, TSchemaType>>,
+	oneOf?: MaybeReadonlyArray<boolean | JsonSchema<TValue, TBsonType, TSchemaType>>,
 
 	/**
    * The value of this keyword MUST be a string. This string SHOULD be a

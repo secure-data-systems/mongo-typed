@@ -39,12 +39,7 @@ export declare type PushOperator<T extends object> = {
 	[P in DotNotation<T> as DotPathValue<T, P> extends ReadonlyArray<any> | undefined ? P : never]?:
 	NonNullable<DotPathValue<T, P>> extends ReadonlyArray<infer Item>
 		? Item extends Identifiable
-			? PartialButId<Item> | {
-				$each: PartialButId<Item>[],
-				$position?: number,
-				$slice?: number,
-				$sort?: -1 | 1 | Partial<Record<DotNotation<PartialButId<Item>>, -1 | 1>>
-			}
+			? PartialButId<Item> | { $each: PartialButId<Item>[], $position?: number, $slice?: number, $sort?: -1 | 1 | Partial<Record<DotNotation<PartialButId<Item>>, -1 | 1>> }
 			: Item | {
 				$each: Item[],
 				$position?: number,
