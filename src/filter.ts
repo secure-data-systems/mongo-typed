@@ -26,7 +26,7 @@ export declare interface Document {
 
 export declare type FilterOperations<T> = T extends Record<string, any> ? {
 	[key in keyof T]?: FilterOperators<T[key]>;
-} : FilterOperators<T>; ;
+} : FilterOperators<T>;
 
 export declare interface FilterOperators<TValue> {
 	$all?: TValue extends ReadonlyArray<infer U> ? ReadonlyArray<U> : never,
