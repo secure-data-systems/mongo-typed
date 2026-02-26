@@ -2,17 +2,7 @@
 import { describe, it } from 'node:test';
 
 import type { Assert, Includes, Not } from '../types.js';
-
 import type { JsonSchema } from './schema.js';
-
-/**
- * The key invariant under test: when TValue constrains TBsonType (e.g. number → 'int'|'double'|...),
- * nested schemas inside allOf/anyOf/contains/not/oneOf must inherit the same TBsonType — NOT
- * TSchemaType (e.g. 'number'). The two type sets are distinct:
- *
- *   number → TBsonType = 'decimal'|'double'|'int'|'long'   TSchemaType = 'number'
- *   boolean → TBsonType = 'bool'                            TSchemaType = 'boolean'
- */
 
 describe('JsonSchema', () => {
 	describe('allOf', () => {
@@ -24,8 +14,6 @@ describe('JsonSchema', () => {
 		});
 
 		it('should NOT accept JSON-only type as bsonType in nested number schemas', () => {
-			// Before the fix, TBsonType was accidentally set to TSchemaType ('number'),
-			// so { bsonType: 'number' } was incorrectly valid and { bsonType: 'int' } was not.
 			type T1 = Assert<Not<Includes<JsonSchema<number>, { allOf: [{ bsonType: 'number' }] }>>>;
 		});
 
@@ -34,7 +22,6 @@ describe('JsonSchema', () => {
 		});
 
 		it('should NOT accept JSON-only type as bsonType in nested boolean schemas', () => {
-			// Before the fix, 'boolean' (TSchemaType) was incorrectly accepted as bsonType
 			type T1 = Assert<Not<Includes<JsonSchema<boolean>, { allOf: [{ bsonType: 'boolean' }] }>>>;
 		});
 

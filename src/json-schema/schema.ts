@@ -46,21 +46,21 @@ export interface JsonSchema<
 	TValue = any,
 	TBsonType = TValue extends boolean ? 'bool'
 		: TValue extends null ? 'null'
-		: TValue extends number ? 'decimal' | 'double' | 'int' | 'long'
-		: TValue extends string ? 'string'
-		: TValue extends Date ? 'date' | 'timestamp'
-		: TValue extends ArrayBuffer | Buffer | Uint8Array ? 'binData'
-		: TValue extends RegExp ? 'regex'
-		: TValue extends unknown[] ? 'array'
-		: TValue extends Record<number | string, unknown> ? 'object'
-		: BsonType,
+			: TValue extends number ? 'decimal' | 'double' | 'int' | 'long'
+				: TValue extends string ? 'string'
+					: TValue extends Date ? 'date' | 'timestamp'
+						: TValue extends ArrayBuffer | Buffer | Uint8Array ? 'binData'
+							: TValue extends RegExp ? 'regex'
+								: TValue extends unknown[] ? 'array'
+									: TValue extends Record<number | string, unknown> ? 'object'
+										: BsonType,
 	TSchemaType = TValue extends boolean ? 'boolean'
 		: TValue extends null ? 'null'
-		: TValue extends number ? 'number'
-		: TValue extends string ? 'string'
-		: TValue extends unknown[] ? 'array'
-		: TValue extends Record<number | string, unknown> ? 'object'
-		: JsonSchemaType
+			: TValue extends number ? 'number'
+				: TValue extends string ? 'string'
+					: TValue extends unknown[] ? 'array'
+						: TValue extends Record<number | string, unknown> ? 'object'
+							: JsonSchemaType
 > {
 	/**
    * This keyword is reserved for comments from schema authors to readers or
