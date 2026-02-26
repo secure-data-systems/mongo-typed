@@ -617,7 +617,7 @@ describe('Filter', () => {
 		});
 	});
 
-	describe('$near', () => {
+	describe('$nearSphere', () => {
 		it('should allow $nearSphere on GeoJsonPoint', () => {
 			type Actual = Filter<User>['address.location'];
 			type T4 = Assert<Includes<Actual, { $nearSphere: NearFilter }>>;
