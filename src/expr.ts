@@ -21,7 +21,7 @@ export type BooleanExpr<TInput extends object> =
 	| boolean
 	| FieldRef<TInput>
 	| { $allElementsTrue: ArrayExpr<TInput> }
-	| { $and: ArrayExpr<TInput> }
+	| { $and: Expr<TInput>[] }
 	| { $anyElementTrue: ArrayExpr<TInput> }
 	| { $eq: [Expr<TInput>, Expr<TInput>] }
 	| { $gt: [Expr<TInput>, Expr<TInput>] }
