@@ -43,7 +43,7 @@ export declare interface FilterOperators<TValue> {
 	$exists?: boolean,
 	$expr?: Expr<TValue extends object ? TValue : object>,
 	$geoIntersects?: TValue extends GeoJson ? { $geometry: GeoJson } : never,
-	$geoWithin?: TValue extends GeoJsonMultiPolygon | GeoJsonPolygon ? GeoJsonMultiPolygon | GeoJsonPolygon : never,
+	$geoWithin?: TValue extends GeoJsonMultiPolygon | GeoJsonPolygon ? { $geometry: GeoJsonMultiPolygon | GeoJsonPolygon } : never,
 	$gt?: NonNullable<TValue> extends ReadonlyArray<infer U> ? U : TValue,
 	$gte?: NonNullable<TValue> extends ReadonlyArray<infer U> ? U : TValue,
 	$in?: NonNullable<TValue> extends ReadonlyArray<infer U> ? ReadonlyArray<TValue> | ReadonlyArray<U> : ReadonlyArray<TValue>,

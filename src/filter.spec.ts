@@ -267,18 +267,31 @@ describe('Filter', () => {
 	describe('$geoWithin', () => {
 		it('should allow $geoWithin on Polygon field', () => {
 			type Actual = Filter<User>['address.region'];
-			interface Expect { $geoWithin: GeoJsonMultiPolygon | GeoJsonPolygon }
+			interface Expect { $geoWithin: { $geometry: GeoJsonMultiPolygon | GeoJsonPolygon } }
 			type T1 = Assert<Includes<Actual, Expect>>;
 		});
 
 		it('should allow $geoWithin on MultiPolygon field', () => {
 			type Actual = Filter<User>['address.zones'];
-			interface Expect { $geoWithin: GeoJsonMultiPolygon | GeoJsonPolygon }
+			interface Expect { $geoWithin: { $geometry: GeoJsonMultiPolygon | GeoJsonPolygon } }
 			type T1 = Assert<Includes<Actual, Expect>>;
 		});
 
 		it('should NOT allow $geoWithin on non-geo field', () => {
 			type Actual = Filter<User>['name'];
+
+			type T1 = Assert<Not<Includes<Actual, { $geoWithin: { $geometry: GeoJsonPolygon } }>>>;
+		});
+
+		it('should accept $geoWithin with $geometry wrapper on Polygon field', () => {
+			type Actual = Filter<User>['address.region'];
+
+			type T1 = Assert<Includes<Actual, { $geoWithin: { $geometry: GeoJsonPolygon } }>>;
+			type T2 = Assert<Includes<Actual, { $geoWithin: { $geometry: GeoJsonMultiPolygon } }>>;
+		});
+
+		it('should NOT accept $geoWithin with bare GeoJson (no $geometry wrapper)', () => {
+			type Actual = Filter<User>['address.region'];
 
 			type T1 = Assert<Not<Includes<Actual, { $geoWithin: GeoJsonPolygon }>>>;
 		});
