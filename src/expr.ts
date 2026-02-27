@@ -4,10 +4,16 @@ import { DotNotation } from './dot-notation.js';
 export type ArrayExpr<TInput extends object> =
 	| Array<unknown>
 	| FieldRef<TInput>
+	| { $arrayElemAt: [ArrayExpr<TInput>, NumericExpr<TInput>] }
+	| { $arrayToObject: ArrayExpr<TInput> }
 	| { $concatArrays: ArrayExpr<TInput>[] }
 	| { $filter: { as?: string, cond: BooleanExpr<TInput>, input: ArrayExpr<TInput> } }
+	| { $first: ArrayExpr<TInput> }
+	| { $indexOfArray: [ArrayExpr<TInput>, Expr<TInput>, NumericExpr<TInput>?, NumericExpr<TInput>?] }
+	| { $last: ArrayExpr<TInput> }
 	| { $literal: Array<unknown> }
 	| { $map: { as?: string, in: Expr<TInput>, input: ArrayExpr<TInput> } }
+	| { $objectToArray: Expr<TInput> }
 	| { $range: [NumericExpr<TInput>, NumericExpr<TInput>, NumericExpr<TInput>?] }
 	| { $reduce: { in: Expr<TInput>, initialValue: Expr<TInput>, input: ArrayExpr<TInput> } }
 	| { $reverseArray: ArrayExpr<TInput> }
@@ -15,6 +21,7 @@ export type ArrayExpr<TInput extends object> =
 	| { $setIntersection: [ArrayExpr<TInput>, ArrayExpr<TInput>] }
 	| { $setUnion: [ArrayExpr<TInput>, ArrayExpr<TInput>] }
 	| { $slice: [ArrayExpr<TInput>, NumericExpr<TInput>, NumericExpr<TInput>?] }
+	| { $split: [StringExpr<TInput>, StringExpr<TInput>] }
 	| { $zip: { defaults?: ArrayExpr<TInput>, inputs: ArrayExpr<TInput>[], useLongestLength?: boolean } };
 
 export type BooleanExpr<TInput extends object> =
@@ -27,6 +34,7 @@ export type BooleanExpr<TInput extends object> =
 	| { $gt: [Expr<TInput>, Expr<TInput>] }
 	| { $gte: [Expr<TInput>, Expr<TInput>] }
 	| { $in: [Expr<TInput>, ArrayExpr<TInput>] }
+	| { $isArray: Expr<TInput> }
 	| { $literal: boolean }
 	| { $lt: [Expr<TInput>, Expr<TInput>] }
 	| { $lte: [Expr<TInput>, Expr<TInput>] }
@@ -60,9 +68,13 @@ export interface ConditionalExpr<TInput extends object> {
 export type DateExpr<TInput extends object> =
 	| Date
 	| FieldRef<TInput>
+	| { $dateAdd: { amount: NumericExpr<TInput>, startDate: DateExpr<TInput>, timezone?: StringExpr<TInput>, unit: StringExpr<TInput> } }
 	| { $dateFromParts: { day?: NumericExpr<TInput>, hour?: NumericExpr<TInput>, millisecond?: NumericExpr<TInput>, minute?: NumericExpr<TInput>, month?: NumericExpr<TInput>, second?: NumericExpr<TInput>, timezone?: StringExpr<TInput>, year: NumericExpr<TInput> } }
 	| { $dateFromString: { dateString: StringExpr<TInput>, format?: StringExpr<TInput>, onError?: Expr<TInput>, onNull?: Expr<TInput>, timezone?: StringExpr<TInput> } }
-	| { $literal: Date };
+	| { $dateSubtract: { amount: NumericExpr<TInput>, startDate: DateExpr<TInput>, timezone?: StringExpr<TInput>, unit: StringExpr<TInput> } }
+	| { $dateTrunc: { binSize?: NumericExpr<TInput>, date: DateExpr<TInput>, startOfWeek?: StringExpr<TInput>, timezone?: StringExpr<TInput>, unit: StringExpr<TInput> } }
+	| { $literal: Date }
+	| { $toDate: Expr<TInput> };
 
 export interface DatePartsExpr<TInput extends object> {
 	$dateToParts: { date: DateExpr<TInput>, iso8601?: BooleanExpr<TInput>, timezone?: StringExpr<TInput> }
@@ -97,6 +109,7 @@ export type NumericExpr<TInput extends object> =
 	| { $add: (DateExpr<TInput> | NumericExpr<TInput>)[] }
 	| { $asin: NumericExpr<TInput> }
 	| { $asinh: NumericExpr<TInput> }
+	| { $atan2: [NumericExpr<TInput>, NumericExpr<TInput>] }
 	| { $atan: NumericExpr<TInput> }
 	| { $atanh: NumericExpr<TInput> }
 	| { $ceil: NumericExpr<TInput> }
@@ -112,6 +125,8 @@ export type NumericExpr<TInput extends object> =
 	| { $exp: NumericExpr<TInput> }
 	| { $floor: NumericExpr<TInput> }
 	| { $hour?: DateExpr<TInput> | DateTimezoneExpr<TInput> }
+	| { $indexOfBytes: [StringExpr<TInput>, StringExpr<TInput>, NumericExpr<TInput>?, NumericExpr<TInput>?] }
+	| { $indexOfCP: [StringExpr<TInput>, StringExpr<TInput>, NumericExpr<TInput>?, NumericExpr<TInput>?] }
 	| { $isoDayOfWeek?: DateExpr<TInput> | DateTimezoneExpr<TInput> }
 	| { $isoWeek?: DateExpr<TInput> | DateTimezoneExpr<TInput> }
 	| { $isoWeekYear?: DateExpr<TInput> | DateTimezoneExpr<TInput> }
@@ -133,6 +148,7 @@ export type NumericExpr<TInput extends object> =
 	| { $sinh: NumericExpr<TInput> }
 	| { $size: ArrayExpr<TInput> }
 	| { $sqrt: NumericExpr<TInput> }
+	| { $strcasecmp: [StringExpr<TInput>, StringExpr<TInput>] }
 	| { $strLenBytes: StringExpr<TInput> }
 	| { $strLenCP: StringExpr<TInput> }
 	| { $subtract: [DateExpr<TInput>, DateExpr<TInput>] }
@@ -167,10 +183,10 @@ export type StringExpr<TInput extends object> =
 	| { $trim: { chars?: StringExpr<TInput>, input: StringExpr<TInput> } };
 
 export interface TypeExpr<TInput extends object> {
-	$type?: Expr<TInput>
+	$type: Expr<TInput>
 }
 
 export type VariableExpr<TInput extends object> =
-	| { $let?: { in: Expr<TInput>, vars: Record<string, Expr<TInput>> } }
-	| { $map?: { as: string, in: Expr<TInput>, input: ArrayExpr<TInput> } }
-	| { $reduce?: { in: Expr<TInput>, initialValue: Expr<TInput>, input: ArrayExpr<TInput> } };
+	| { $let: { in: Expr<TInput>, vars: Record<string, Expr<TInput>> } }
+	| { $map: { as: string, in: Expr<TInput>, input: ArrayExpr<TInput> } }
+	| { $reduce: { in: Expr<TInput>, initialValue: Expr<TInput>, input: ArrayExpr<TInput> } };
