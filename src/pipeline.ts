@@ -128,6 +128,10 @@ export type GroupSpec<TInput extends object> = {
 	[field: string]: AccumulatorExpr<TInput> | Expr<TInput> | null
 };
 
+/** True if TSpec has any field with value `1 | true` — signals $project inclusion mode. */
+type HasInclusion<TSpec> =
+	[{ [K in keyof TSpec]: TSpec[K] extends 1 | true ? true : never }[keyof TSpec]] extends [never] ? false : true;
+
 /** Spec for $lookup — equality join or pipeline join */
 export type LookupSpec<TInput extends object, TForeignSchema extends object, TAs extends string> =
 	| {
@@ -205,11 +209,11 @@ export interface PipelineBuilder<TInput extends object> {
 
 	/**
 	 * Reshapes each document.
-	 * Specify `TOutput` explicitly to track the output schema downstream.
+	 * The output schema is inferred from the spec: `1 | true` fields keep their
+	 * `TInput` type, expression fields become `unknown`, `0 | false` fields are
+	 * dropped (inclusion mode), or `TInput` is narrowed by exclusions (exclusion mode).
 	 */
-	project<TOutput extends object = Record<string, unknown>>(
-		spec: ProjectSpec<TInput>
-	): PipelineBuilder<TOutput>,
+	project<TSpec extends ProjectSpec<TInput>>(spec: TSpec): PipelineBuilder<ProjectOutput<TInput, TSpec>>,
 
 	/**
 	 * Replaces each document with a new root expression.
@@ -298,6 +302,28 @@ export type PipelineStage<TInput extends object> =
 	| { $unionWith: string | { coll: string, pipeline?: PipelineStage<any>[] } }
 	| { $unset: DotNotation<TInput> | DotNotation<TInput>[] }
 	| { $unwind: FieldRef<TInput> | UnwindOptions<TInput, FieldRef<TInput>> };
+
+/** @internal Exclusion-mode $project output: TInput minus excluded fields; expression fields override original type with unknown. */
+type ProjectExclusionOutput<TInput extends object, TSpec> =
+	{ [K in keyof TInput as K extends keyof TSpec ? TSpec[K] extends 0 | false ? never : TSpec[K] extends 1 | boolean | true ? K : never : K]: TInput[K] }
+	& { [K in keyof TSpec as TSpec[K] extends 0 | 1 | boolean | false | true ? never : K]: unknown };
+
+/** @internal Inclusion-mode $project output: only spec'd fields, typed from TInput (1|true) or unknown (expressions). */
+type ProjectInclusionOutput<TInput extends object, TSpec> = {
+	[K in keyof TSpec as TSpec[K] extends 0 | false ? never : K]: TSpec[K] extends 1 | true ? (K extends keyof TInput ? TInput[K] : unknown) : unknown
+};
+
+/**
+ * Inferred output type of a `$project` stage.
+ *
+ * - **Inclusion mode** (any field = `1 | true`): only spec'd fields are kept.
+ *   Fields with `1 | true` carry their original `TInput` type; expression
+ *   fields become `unknown`; `0 | false` fields are dropped.
+ * - **Exclusion mode** (no field = `1 | true`): `TInput` minus excluded fields.
+ *   Expression fields override their original type with `unknown`.
+ */
+export type ProjectOutput<TInput extends object, TSpec extends ProjectSpec<TInput>> =
+	HasInclusion<TSpec> extends true ? ProjectInclusionOutput<TInput, TSpec> : ProjectExclusionOutput<TInput, TSpec>;
 
 /** Projection spec for $project (field inclusion/exclusion and computed fields) */
 export type ProjectSpec<TInput extends object> = {
@@ -425,8 +451,8 @@ class PipelineBuilderImpl<TInput extends object> implements PipelineBuilder<TInp
 		return [...this._stages, { $out: collection }] as PipelineStage<any>[];
 	}
 
-	project<TOutput extends object = Record<string, unknown>>(spec: ProjectSpec<TInput>): PipelineBuilder<TOutput> {
-		return this.push({ $project: spec }) as PipelineBuilder<TOutput>;
+	project<TSpec extends ProjectSpec<TInput>>(spec: TSpec): PipelineBuilder<ProjectOutput<TInput, TSpec>> {
+		return this.push({ $project: spec }) as PipelineBuilder<ProjectOutput<TInput, TSpec>>;
 	}
 
 	private push(stage: object): PipelineBuilderImpl<any> {
