@@ -68,6 +68,9 @@ export interface DensifySpec<TInput extends object> {
 	}
 }
 
+/** Inferred output type of a $facet stage — each key becomes `unknown[]`. */
+export type FacetOutput<TSpec> = { [K in keyof TSpec]: unknown[] };
+
 /** Spec for $fill */
 export interface FillSpec<TInput extends object> {
 	output: {
@@ -204,7 +207,7 @@ export interface PipelineBuilder<TInput extends object> {
 	 * Runs multiple sub-pipelines on the same input and merges their results.
 	 * The output schema is `Record<string, unknown[]>`.
 	 */
-	facet(spec: Record<string, PipelineStage<TInput>[]>): PipelineBuilder<Record<string, unknown[]>>,
+	facet<TSpec extends Record<string, PipelineStage<TInput>[]>>(spec: TSpec): PipelineBuilder<FacetOutput<TSpec>>,
 
 	/**
 	 * Groups documents by `_id` and computes accumulator fields.
@@ -450,8 +453,8 @@ class PipelineBuilderImpl<TInput extends object> implements PipelineBuilder<TInp
 		return this.push({ $count: field }) as PipelineBuilder<Record<TField, number>>;
 	}
 
-	facet(spec: Record<string, PipelineStage<TInput>[]>): PipelineBuilder<Record<string, unknown[]>> {
-		return this.push({ $facet: spec }) as PipelineBuilder<Record<string, unknown[]>>;
+	facet<TSpec extends Record<string, PipelineStage<TInput>[]>>(spec: TSpec): PipelineBuilder<FacetOutput<TSpec>> {
+		return this.push({ $facet: spec }) as PipelineBuilder<FacetOutput<TSpec>>;
 	}
 
 	group<TSpec extends GroupSpec<TInput>>(spec: TSpec): PipelineBuilder<GroupOutput<TInput, TSpec>> {

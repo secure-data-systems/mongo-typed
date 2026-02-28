@@ -509,9 +509,9 @@ describe('pipeline() builder', () => {
 			});
 		});
 
-		it('should produce Record<string, unknown[]> output schema', () => {
+		it('should produce typed keys in output schema', () => {
 			const builder = pipeline<User>().facet({ byDept: [{ $group: { _id: '$department' } }] });
-			type T1 = Assert<Equals<typeof builder, PipelineBuilder<Record<string, unknown[]>>>>;
+			type T1 = Assert<Equals<typeof builder, PipelineBuilder<{ byDept: unknown[] }>>>;
 		});
 	});
 
