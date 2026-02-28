@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { describe, it } from 'node:test';
 
-import type { ArrayExpr, BooleanExpr, DateExpr, FieldRef, NumericExpr, TypeExpr, VariableExpr } from './expr.js';
+import type { ArrayExpr, BooleanExpr, ConditionalExpr, DateExpr, DateTimezoneExpr, FieldRef, NumericExpr, ObjectExpr, StringExpr, TypeExpr, VariableExpr } from './expr.js';
 import type { Assert, Includes, Not } from './types.js';
 
 type TestRef = FieldRef<User>;
@@ -242,5 +242,189 @@ describe('VariableExpr', () => {
 
 	it('should not match an object with no $let, $map, or $reduce key', () => {
 		type T1 = Assert<Not<Includes<VariableExpr<User>, { unrelated: string }>>>;
+	});
+});
+
+describe('ConditionalExpr', () => {
+	describe('$cond', () => {
+		it('should accept array form', () => {
+			type T1 = Assert<Includes<ConditionalExpr<User>, { $cond: [true, 1, 0] }>>;
+		});
+
+		it('should accept object form', () => {
+			type T1 = Assert<Includes<ConditionalExpr<User>, { $cond: { else: 0, if: true, then: 1 } }>>;
+		});
+	});
+
+	describe('$ifNull', () => {
+		it('should accept two arguments', () => {
+			type T1 = Assert<Includes<ConditionalExpr<User>, { $ifNull: ['$name', 'default'] }>>;
+		});
+
+		it('should accept more than two arguments (variadic since MongoDB 5.0)', () => {
+			type T1 = Assert<Includes<ConditionalExpr<User>, { $ifNull: ['$name', '$email', 'fallback'] }>>;
+		});
+	});
+
+	describe('$switch', () => {
+		it('should accept with default', () => {
+			type T1 = Assert<Includes<ConditionalExpr<User>, { $switch: { branches: [{ case: true, then: 1 }], default: 0 } }>>;
+		});
+
+		it('should accept without default (default is optional)', () => {
+			type T1 = Assert<Includes<ConditionalExpr<User>, { $switch: { branches: [{ case: true, then: 1 }] } }>>;
+		});
+	});
+
+	it('should NOT accept an empty object (structural bug — all-optional interface)', () => {
+		type T1 = Assert<Not<Includes<ConditionalExpr<User>, Record<never, never>>>>;
+	});
+});
+
+describe('DateTimezoneExpr', () => {
+	it('timezone should be optional (date alone is valid)', () => {
+		type T1 = Assert<Includes<DateTimezoneExpr<User>, { date: Date }>>;
+	});
+
+	it('should accept date with timezone', () => {
+		type T1 = Assert<Includes<DateTimezoneExpr<User>, { date: Date, timezone: 'UTC' }>>;
+	});
+});
+
+describe('ObjectExpr', () => {
+	describe('$getField', () => {
+		it('should accept string shorthand', () => {
+			type T1 = Assert<Includes<ObjectExpr<User>, { $getField: 'name' }>>;
+		});
+
+		it('should accept object form with field and input', () => {
+			type T1 = Assert<Includes<ObjectExpr<User>, { $getField: { field: 'name', input: '$name' } }>>;
+		});
+
+		it('should accept object form with field only (input is optional)', () => {
+			type T1 = Assert<Includes<ObjectExpr<User>, { $getField: { field: 'name' } }>>;
+		});
+	});
+
+	describe('$mergeObjects', () => {
+		it('should accept an array of expressions', () => {
+			type T1 = Assert<Includes<ObjectExpr<User>, { $mergeObjects: ['$name', '$email'] }>>;
+		});
+	});
+
+	describe('$regexFind', () => {
+		it('should accept input and regex', () => {
+			type T1 = Assert<Includes<ObjectExpr<User>, { $regexFind: { input: '$name', regex: 'pattern' } }>>;
+		});
+
+		it('should accept input, regex, and options', () => {
+			type T1 = Assert<Includes<ObjectExpr<User>, { $regexFind: { input: '$name', options: 'i', regex: 'pattern' } }>>;
+		});
+	});
+
+	describe('$regexFindAll', () => {
+		it('should accept input and regex', () => {
+			type T1 = Assert<Includes<ObjectExpr<User>, { $regexFindAll: { input: '$name', regex: 'pattern' } }>>;
+		});
+
+		it('should accept input, regex, and options', () => {
+			type T1 = Assert<Includes<ObjectExpr<User>, { $regexFindAll: { input: '$name', options: 'i', regex: 'pattern' } }>>;
+		});
+	});
+
+	it('should NOT match an unrelated object', () => {
+		type T1 = Assert<Not<Includes<ObjectExpr<User>, { unrelated: string }>>>;
+	});
+});
+
+describe('BooleanExpr additions', () => {
+	describe('$isNumber', () => {
+		it('should accept a field reference', () => {
+			type T1 = Assert<Includes<BooleanExpr<User>, { $isNumber: '$name' }>>;
+		});
+
+		it('should accept a numeric literal', () => {
+			type T1 = Assert<Includes<BooleanExpr<User>, { $isNumber: 42 }>>;
+		});
+	});
+
+	describe('$toBool', () => {
+		it('should accept a field reference', () => {
+			type T1 = Assert<Includes<BooleanExpr<User>, { $toBool: '$name' }>>;
+		});
+
+		it('should accept a numeric expression', () => {
+			type T1 = Assert<Includes<BooleanExpr<User>, { $toBool: 1 }>>;
+		});
+	});
+});
+
+describe('NumericExpr additions', () => {
+	describe('$cmp', () => {
+		it('should accept two string expressions', () => {
+			type T1 = Assert<Includes<NumericExpr<User>, { $cmp: ['$name', 'alice'] }>>;
+		});
+
+		it('should accept two numeric expressions', () => {
+			type T1 = Assert<Includes<NumericExpr<User>, { $cmp: ['$age', 18] }>>;
+		});
+	});
+
+	describe('$convert.to', () => {
+		it('should accept any BsonType string alias (bool)', () => {
+			type T1 = Assert<Includes<NumericExpr<User>, { $convert: { input: '$name', to: 'bool' } }>>;
+		});
+
+		it('should accept any BsonType string alias (string)', () => {
+			type T1 = Assert<Includes<NumericExpr<User>, { $convert: { input: '$name', to: 'string' } }>>;
+		});
+
+		it('should still accept numeric BSON types', () => {
+			type T1 = Assert<Includes<NumericExpr<User>, { $convert: { input: '$name', to: 'int' } }>>;
+		});
+	});
+
+	describe('$dateDiff', () => {
+		it('should accept startOfWeek parameter', () => {
+			type T1 = Assert<Includes<NumericExpr<User>, { $dateDiff: { endDate: Date, startDate: Date, startOfWeek: 'monday', unit: 'week' } }>>;
+		});
+	});
+});
+
+describe('ArrayExpr additions', () => {
+	describe('$filter with limit', () => {
+		it('should accept limit parameter (added in MongoDB 5.2)', () => {
+			type T1 = Assert<Includes<ArrayExpr<User>, { $filter: { as: 'tag', cond: true, input: '$tags', limit: 5 } }>>;
+		});
+	});
+
+	describe('$sortArray', () => {
+		it('should accept numeric sortBy (for simple value arrays)', () => {
+			type T1 = Assert<Includes<ArrayExpr<User>, { $sortArray: { input: '$tags', sortBy: 1 } }>>;
+		});
+
+		it('should accept object sortBy (for arrays of documents)', () => {
+			type T1 = Assert<Includes<ArrayExpr<User>, { $sortArray: { input: '$tags', sortBy: { name: 1 } } }>>;
+		});
+	});
+});
+
+describe('DateExpr additions', () => {
+	describe('$dateFromParts ISO week-date form', () => {
+		it('should accept isoWeekYear as the required field', () => {
+			type T1 = Assert<Includes<DateExpr<User>, { $dateFromParts: { isoWeekYear: 2023 } }>>;
+		});
+
+		it('should accept isoWeekYear with optional isoWeek and isoDayOfWeek', () => {
+			type T1 = Assert<Includes<DateExpr<User>, { $dateFromParts: { isoDayOfWeek: 1, isoWeek: 1, isoWeekYear: 2023 } }>>;
+		});
+	});
+});
+
+describe('TypeExpr additions', () => {
+	describe('$toObjectId', () => {
+		it('should accept any expression', () => {
+			type T1 = Assert<Includes<TypeExpr<User>, { $toObjectId: '$name' }>>;
+		});
 	});
 });
