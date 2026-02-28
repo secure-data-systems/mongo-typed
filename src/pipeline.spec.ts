@@ -523,16 +523,18 @@ describe('pipeline() builder', () => {
 	});
 
 	describe('facet', () => {
-		it('should accept sub-pipelines as raw stage arrays', () => {
-			pipeline<User>().facet({
-				byDept: [{ $group: { _id: '$department', total: { $sum: 1 } } }],
-				top10: [{ $sort: { score: -1 } }, { $limit: 10 }]
-			});
+		it('should accept sub-pipeline builders via factory callback', () => {
+			pipeline<User>().facet(p => ({
+				byDept: p().group({ _id: '$department', total: { $sum: 1 } }),
+				top10: p().sort({ score: -1 }).limit(10)
+			}));
 		});
 
-		it('should produce typed keys in output schema', () => {
-			const builder = pipeline<User>().facet({ byDept: [{ $group: { _id: '$department' } }] });
-			type T1 = Assert<Equals<typeof builder, PipelineBuilder<{ byDept: unknown[] }>>>;
+		it('should infer element type from sub-pipeline output schema', () => {
+			const builder = pipeline<User>().facet(p => ({
+				byDept: p().group({ _id: '$department', total: { $sum: 1 } })
+			}));
+			type T1 = Assert<Equals<typeof builder, PipelineBuilder<{ byDept: { _id: unknown, total: number }[] }>>>;
 		});
 	});
 
