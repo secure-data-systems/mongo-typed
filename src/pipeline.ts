@@ -222,7 +222,8 @@ type PathToNested<TInput extends object, TPath extends string> =
 export interface PipelineBuilder<TInput extends object> {
 	/**
 	 * Adds computed fields to each document.
-	 * The output schema is extended with the keys from `spec`.
+	 * The output schema is extended with the keys from `spec`, each typed
+	 * via the inferred expression return type.
 	 */
 	addFields<TFields extends AddFieldsSpec<TInput>>(
 		spec: TFields
@@ -250,7 +251,9 @@ export interface PipelineBuilder<TInput extends object> {
 
 	/**
 	 * Groups documents by `_id` and computes accumulator fields.
-	 * The output type is inferred from the spec for numeric/array accumulators.
+	 * Output types are fully inferred: numeric accumulators → `number`,
+	 * array accumulators → typed element arrays, scalar accumulators and
+	 * `_id` → inferred expression return type.
 	 */
 	group<TSpec extends GroupSpec<TInput>>(spec: TSpec): PipelineBuilder<GroupOutput<TInput, TSpec>>,
 
@@ -280,9 +283,11 @@ export interface PipelineBuilder<TInput extends object> {
 
 	/**
 	 * Reshapes each document.
-	 * The output schema is inferred from the spec: `1 | true` fields keep their
-	 * `TInput` type, expression fields become `unknown`, `0 | false` fields are
-	 * dropped (inclusion mode), or `TInput` is narrowed by exclusions (exclusion mode).
+	 * - **Inclusion mode** (any field = `1 | true`): only spec'd fields are kept;
+	 *   `1 | true` fields carry their `TInput` type; expression fields are typed
+	 *   via inferred return type; `0 | false` fields and dot-notation keys are handled.
+	 * - **Exclusion mode** (no field = `1 | true`): `TInput` minus excluded fields;
+	 *   expression fields are typed via inferred return type.
 	 */
 	project<TSpec extends ProjectSpec<TInput>>(spec: TSpec): PipelineBuilder<ProjectOutput<TInput, TSpec>>,
 
@@ -307,7 +312,8 @@ export interface PipelineBuilder<TInput extends object> {
 
 	/**
 	 * Adds or overwrites fields (alias for `addFields`).
-	 * The output schema is extended with the keys from `spec`.
+	 * The output schema is extended with the keys from `spec`, each typed
+	 * via the inferred expression return type.
 	 */
 	set<TFields extends AddFieldsSpec<TInput>>(
 		spec: TFields
@@ -374,7 +380,7 @@ export type PipelineStage<TInput extends object> =
 	| { $unset: DotNotation<TInput> | DotNotation<TInput>[] }
 	| { $unwind: FieldRef<TInput> | UnwindOptions<TInput, FieldRef<TInput>> };
 
-/** @internal Exclusion-mode $project output: TInput minus excluded fields; expression fields override original type with unknown. */
+/** @internal Exclusion-mode $project output: TInput minus excluded fields; expression fields are typed via InferExprType. */
 type ProjectExclusionOutput<TInput extends object, TSpec> =
 	{ [K in keyof TInput as K extends keyof TSpec ? TSpec[K] extends 0 | false ? never : TSpec[K] extends 1 | boolean | true ? K : never : K]: TInput[K] }
 	& { [K in keyof TSpec as TSpec[K] extends 0 | 1 | boolean | false | true ? never : K]: InferExprType<TInput, TSpec[K]> };
@@ -389,9 +395,10 @@ type ProjectInclusionOutput<TInput extends object, TSpec> =
  *
  * - **Inclusion mode** (any field = `1 | true`): only spec'd fields are kept.
  *   Fields with `1 | true` carry their original `TInput` type; expression
- *   fields become `unknown`; `0 | false` fields are dropped.
+ *   fields are typed via `InferExprType`; `0 | false` fields are dropped;
+ *   dot-notation keys are reconstructed as nested object types.
  * - **Exclusion mode** (no field = `1 | true`): `TInput` minus excluded fields.
- *   Expression fields override their original type with `unknown`.
+ *   Expression fields are typed via `InferExprType`.
  */
 export type ProjectOutput<TInput extends object, TSpec extends ProjectSpec<TInput>> =
 	HasInclusion<TSpec> extends true ? ProjectInclusionOutput<TInput, TSpec> : ProjectExclusionOutput<TInput, TSpec>;
@@ -428,10 +435,6 @@ export interface UnwindOptions<TInput extends object, TField extends FieldRef<TI
 	preserveNullAndEmptyArrays?: boolean
 }
 
-// ---------------------------------------------------------------------------
-// PipelineStage — the flat union of all valid stage objects
-// ---------------------------------------------------------------------------
-
 /**
  * Infers the output type of an $unwind stage.
  * Array fields are unwrapped to their element type; non-array fields are unchanged.
@@ -447,7 +450,7 @@ export type UnwindOutput<TInput extends object, TField extends FieldRef<TInput>>
 // PipelineBuilder — fluent builder with schema tracking across stages
 // ---------------------------------------------------------------------------
 
-// Window accumulator (AccumulatorExpr with optional window specification)
+/** Accumulator expression with an optional window specification, for use in `$setWindowFields`. */
 export type WindowAccumulatorExpr<TInput extends object> = AccumulatorExpr<TInput> & {
 	window?: {
 		documents?: ['current' | 'unbounded' | number, 'current' | 'unbounded' | number],
