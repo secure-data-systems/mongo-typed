@@ -77,8 +77,10 @@ type DotPathsUnion<TInput extends object, TSpec> = {
 	[K in keyof TSpec & string]: K extends `${string}.${string}` ? TSpec[K] extends 0 | false ? never : PathToNested<TInput, K> : never
 }[keyof TSpec & string];
 
-/** Inferred output type of a $facet stage — each key becomes `unknown[]`. */
-export type FacetOutput<TSpec> = { [K in keyof TSpec]: unknown[] };
+/** Inferred output type of a $facet stage — each key maps to an array of the sub-pipeline's output type. */
+export type FacetOutput<TSpec> = {
+	[K in keyof TSpec]: TSpec[K] extends PipelineBuilder<infer O> ? O[] : unknown[]
+};
 
 /** Spec for $fill */
 export interface FillSpec<TInput extends object> {
@@ -204,9 +206,17 @@ export interface PipelineBuilder<TInput extends object> {
 
 	/**
 	 * Runs multiple sub-pipelines on the same input and merges their results.
-	 * The output schema is `Record<string, unknown[]>`.
+	 * Pass a factory callback that receives `p` — call `p()` to get a fresh
+	 * `PipelineBuilder<TInput>` for each sub-pipeline.
+	 * @example
+	 * ```ts
+	 * pipeline<User>().facet(p => ({
+	 *   byDept: p().group({ _id: '$department', count: { $sum: 1 } }),
+	 *   top10:  p().sort({ score: -1 }).limit(10),
+	 * }))
+	 * ```
 	 */
-	facet<TSpec extends Record<string, PipelineStage<TInput>[]>>(spec: TSpec): PipelineBuilder<FacetOutput<TSpec>>,
+	facet<TSpec extends Record<string, PipelineBuilder<any>>>(fn: (p: () => PipelineBuilder<TInput>) => TSpec): PipelineBuilder<FacetOutput<TSpec>>,
 
 	/**
 	 * Groups documents by `_id` and computes accumulator fields.
@@ -456,8 +466,10 @@ class PipelineBuilderImpl<TInput extends object> implements PipelineBuilder<TInp
 		return this.push({ $count: field });
 	}
 
-	facet<TSpec extends Record<string, PipelineStage<TInput>[]>>(spec: TSpec): PipelineBuilder<FacetOutput<TSpec>> {
-		return this.push({ $facet: spec });
+	facet<TSpec extends Record<string, PipelineBuilder<any>>>(fn: (p: () => PipelineBuilder<TInput>) => TSpec): PipelineBuilder<FacetOutput<TSpec>> {
+		const spec = fn(() => new PipelineBuilderImpl<TInput>([]));
+		const built = Object.fromEntries(Object.entries(spec).map(([k, b]) => [k, b.build()]));
+		return this.push({ $facet: built }) as PipelineBuilder<FacetOutput<TSpec>>;
 	}
 
 	group<TSpec extends GroupSpec<TInput>>(spec: TSpec): PipelineBuilder<GroupOutput<TInput, TSpec>> {
