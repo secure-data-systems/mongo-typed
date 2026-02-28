@@ -29,6 +29,11 @@ export type AccumulatorExpr<TInput extends object> =
 	| { $top: { output: Expr<TInput>, sortBy: Record<string, -1 | 1> } }
 	| { $topN: { n: NumericExpr<TInput>, output: Expr<TInput>, sortBy: Record<string, -1 | 1> } };
 
+/** Inferred output type of an $addFields / $set stage — maps each spec key to its expression return type. */
+export type AddFieldsOutput<TInput extends object, TFields extends AddFieldsSpec<TInput>> = {
+	[K in keyof TFields]: InferProjectExprType<TInput, TFields[K]>
+};
+
 /** Fields to add or overwrite via $addFields / $set */
 export type AddFieldsSpec<TInput extends object> = Record<string, Expr<TInput>>;
 
@@ -187,7 +192,7 @@ export interface PipelineBuilder<TInput extends object> {
 	 */
 	addFields<TFields extends AddFieldsSpec<TInput>>(
 		spec: TFields
-	): PipelineBuilder<TInput & Record<keyof TFields, unknown>>,
+	): PipelineBuilder<TInput & AddFieldsOutput<TInput, TFields>>,
 
 	/** Terminates the builder and returns the accumulated stage array. */
 	build(): PipelineStage<any>[],
@@ -264,7 +269,7 @@ export interface PipelineBuilder<TInput extends object> {
 	 */
 	set<TFields extends AddFieldsSpec<TInput>>(
 		spec: TFields
-	): PipelineBuilder<TInput & Record<keyof TFields, unknown>>,
+	): PipelineBuilder<TInput & AddFieldsOutput<TInput, TFields>>,
 
 	/**
 	 * Computes window aggregations over sorted/partitioned documents.
@@ -433,8 +438,8 @@ class PipelineBuilderImpl<TInput extends object> implements PipelineBuilder<TInp
 		this._stages = stages;
 	}
 
-	addFields<TFields extends AddFieldsSpec<TInput>>(spec: TFields): PipelineBuilder<TInput & Record<keyof TFields, unknown>> {
-		return this.push({ $addFields: spec }) as PipelineBuilder<TInput & Record<keyof TFields, unknown>>;
+	addFields<TFields extends AddFieldsSpec<TInput>>(spec: TFields): PipelineBuilder<TInput & AddFieldsOutput<TInput, TFields>> {
+		return this.push({ $addFields: spec }) as PipelineBuilder<TInput & AddFieldsOutput<TInput, TFields>>;
 	}
 
 	build(): PipelineStage<any>[] {
@@ -495,8 +500,8 @@ class PipelineBuilderImpl<TInput extends object> implements PipelineBuilder<TInp
 		return this.push({ $sample: spec }) as PipelineBuilder<TInput>;
 	}
 
-	set<TFields extends AddFieldsSpec<TInput>>(spec: TFields): PipelineBuilder<TInput & Record<keyof TFields, unknown>> {
-		return this.push({ $set: spec }) as PipelineBuilder<TInput & Record<keyof TFields, unknown>>;
+	set<TFields extends AddFieldsSpec<TInput>>(spec: TFields): PipelineBuilder<TInput & AddFieldsOutput<TInput, TFields>> {
+		return this.push({ $set: spec }) as PipelineBuilder<TInput & AddFieldsOutput<TInput, TFields>>;
 	}
 
 	setWindowFields(spec: SetWindowFieldsSpec<TInput>): PipelineBuilder<TInput> {
