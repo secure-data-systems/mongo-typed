@@ -117,24 +117,54 @@ export interface GraphLookupSpec<TInput extends object> {
 	startWith: Expr<TInput>
 }
 
+/** @internal Infers the element type of an array-returning accumulator; never if not matched */
+type GroupArrayAccumulatorElement<TInput extends object, TField> =
+	TField extends { $addToSet: infer E } ? InferExprType<TInput, E>
+		: TField extends { $bottomN: { n: any, output: infer E, sortBy: any } } ? InferExprType<TInput, E>
+			: TField extends { $firstN: { input: infer E, n: any } } ? InferExprType<TInput, E>
+				: TField extends { $lastN: { input: infer E, n: any } } ? InferExprType<TInput, E>
+					: TField extends { $maxN: { input: infer E, n: any } } ? InferExprType<TInput, E>
+						: TField extends { $minN: { input: infer E, n: any } } ? InferExprType<TInput, E>
+							: TField extends { $push: infer E } ? InferExprType<TInput, E>
+								: TField extends { $topN: { n: any, output: infer E, sortBy: any } } ? InferExprType<TInput, E>
+									: never;
+
 /**
  * Infers the output type of a single $group accumulator field.
- * Numeric accumulators → number, array accumulators → unknown[], others → unknown.
+ * Numeric accumulators → number; array accumulators infer element type and wrap in [];
+ * scalar accumulators infer their expression type; fallthrough covers _id and raw expressions.
  */
-type GroupFieldOutput<TField> =
-	TField extends { $avg: any } ? number
-		: TField extends { $count: any } ? number
-			: TField extends { $stdDevPop: any } ? number
-				: TField extends { $stdDevSamp: any } ? number
-					: TField extends { $sum: any } ? number
-						: TField extends { $addToSet: any } ? unknown[]
-							: TField extends { $push: any } ? unknown[]
-								: unknown;
+type GroupFieldOutput<TInput extends object, TField> =
+	[TField] extends [GroupNumericAccumulator] ? number
+		: [GroupArrayAccumulatorElement<TInput, TField>] extends [never]
+			? [GroupScalarAccumulatorOutput<TInput, TField>] extends [never]
+				? InferExprType<TInput, TField>
+				: GroupScalarAccumulatorOutput<TInput, TField>
+			: GroupArrayAccumulatorElement<TInput, TField>[];
+
+/** @internal Numeric accumulator shapes — always produce number */
+type GroupNumericAccumulator =
+	| { $avg: any }
+	| { $count: any }
+	| { $stdDevPop: any }
+	| { $stdDevSamp: any }
+	| { $sum: any };
 
 /** Infers the output document type of a $group stage from its spec. */
 export type GroupOutput<TInput extends object, TSpec extends GroupSpec<TInput>> = {
-	[K in keyof TSpec]: TSpec[K] extends null ? null : GroupFieldOutput<TSpec[K]>
+	[K in keyof TSpec]: TSpec[K] extends null ? null : GroupFieldOutput<TInput, TSpec[K]>
 };
+
+/** @internal Infers the scalar return type of expression-forwarding non-array accumulators; never if not matched */
+type GroupScalarAccumulatorOutput<TInput extends object, TField> =
+	TField extends { $bottom: { output: infer E, sortBy: any } } ? InferExprType<TInput, E>
+		: TField extends { $first: infer E } ? InferExprType<TInput, E>
+			: TField extends { $last: infer E } ? InferExprType<TInput, E>
+				: TField extends { $max: infer E } ? InferExprType<TInput, E>
+					: TField extends { $mergeObjects: infer E } ? InferExprType<TInput, E>
+						: TField extends { $min: infer E } ? InferExprType<TInput, E>
+							: TField extends { $top: { output: infer E, sortBy: any } } ? InferExprType<TInput, E>
+								: never;
 
 /**
  * Spec for $group.
@@ -296,7 +326,7 @@ export interface PipelineBuilder<TInput extends object> {
 	sort(spec: SortSpec<TInput>): PipelineBuilder<TInput>,
 
 	/** Groups documents by an expression and counts occurrences, sorted descending by count. */
-	sortByCount(expr: Expr<TInput>): PipelineBuilder<{ _id: unknown, count: number }>,
+	sortByCount<TExpr extends Expr<TInput>>(expr: TExpr): PipelineBuilder<{ _id: InferExprType<TInput, TExpr>, count: number }>,
 
 	/**
 	 * Removes fields from each document.
@@ -534,7 +564,7 @@ class PipelineBuilderImpl<TInput extends object> implements PipelineBuilder<TInp
 		return this.push({ $sort: spec });
 	}
 
-	sortByCount(expr: Expr<TInput>): PipelineBuilder<{ _id: unknown, count: number }> {
+	sortByCount<TExpr extends Expr<TInput>>(expr: TExpr): PipelineBuilder<{ _id: InferExprType<TInput, TExpr>, count: number }> {
 		return this.push({ $sortByCount: expr });
 	}
 

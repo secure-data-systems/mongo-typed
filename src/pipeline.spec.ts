@@ -250,14 +250,14 @@ describe('pipeline() builder', () => {
 			type T1 = Assert<Equals<Result['avg'], number>>;
 		});
 
-		it('$push accumulator should produce unknown[] in output schema', () => {
+		it('$push accumulator should produce typed array in output schema', () => {
 			type Result = GroupOutput<User, { _id: null, names: { $push: '$name' } }>;
-			type T1 = Assert<Equals<Result['names'], unknown[]>>;
+			type T1 = Assert<Equals<Result['names'], string[]>>;
 		});
 
-		it('$addToSet accumulator should produce unknown[] in output schema', () => {
+		it('$addToSet accumulator should produce typed array in output schema', () => {
 			type Result = GroupOutput<User, { _id: null, tags: { $addToSet: '$department' } }>;
-			type T1 = Assert<Equals<Result['tags'], unknown[]>>;
+			type T1 = Assert<Equals<Result['tags'], string[]>>;
 		});
 
 		it('null _id should produce null in output schema', () => {
@@ -514,7 +514,7 @@ describe('pipeline() builder', () => {
 
 		it('should produce { _id, count } output schema', () => {
 			const builder = pipeline<User>().sortByCount('$department');
-			type T1 = Assert<Equals<typeof builder, PipelineBuilder<{ _id: unknown, count: number }>>>;
+			type T1 = Assert<Equals<typeof builder, PipelineBuilder<{ _id: string, count: number }>>>;
 		});
 
 		it('should allow sorting on count downstream', () => {
@@ -534,7 +534,7 @@ describe('pipeline() builder', () => {
 			const builder = pipeline<User>().facet(p => ({
 				byDept: p().group({ _id: '$department', total: { $sum: 1 } })
 			}));
-			type T1 = Assert<Equals<typeof builder, PipelineBuilder<{ byDept: { _id: unknown, total: number }[] }>>>;
+			type T1 = Assert<Equals<typeof builder, PipelineBuilder<{ byDept: { _id: string, total: number }[] }>>>;
 		});
 	});
 
