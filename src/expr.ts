@@ -18,8 +18,8 @@ export type ArrayExpr<TInput extends object> =
 	| { $reduce: { in: Expr<TInput>, initialValue: Expr<TInput>, input: ArrayExpr<TInput> } }
 	| { $reverseArray: ArrayExpr<TInput> }
 	| { $setDifference: [ArrayExpr<TInput>, ArrayExpr<TInput>] }
-	| { $setIntersection: [ArrayExpr<TInput>, ArrayExpr<TInput>] }
-	| { $setUnion: [ArrayExpr<TInput>, ArrayExpr<TInput>] }
+	| { $setIntersection: [ArrayExpr<TInput>, ArrayExpr<TInput>, ...ArrayExpr<TInput>[]] }
+	| { $setUnion: ArrayExpr<TInput>[] }
 	| { $slice: [ArrayExpr<TInput>, NumericExpr<TInput>, NumericExpr<TInput>?] }
 	| { $split: [StringExpr<TInput>, StringExpr<TInput>] }
 	| { $zip: { defaults?: ArrayExpr<TInput>, inputs: ArrayExpr<TInput>[], useLongestLength?: boolean } };
@@ -27,9 +27,9 @@ export type ArrayExpr<TInput extends object> =
 export type BooleanExpr<TInput extends object> =
 	| boolean
 	| FieldRef<TInput>
-	| { $allElementsTrue: ArrayExpr<TInput> }
+	| { $allElementsTrue: [ArrayExpr<TInput>] }
 	| { $and: Expr<TInput>[] }
-	| { $anyElementTrue: ArrayExpr<TInput> }
+	| { $anyElementTrue: [ArrayExpr<TInput>] }
 	| { $eq: [Expr<TInput>, Expr<TInput>] }
 	| { $gt: [Expr<TInput>, Expr<TInput>] }
 	| { $gte: [Expr<TInput>, Expr<TInput>] }
@@ -39,9 +39,7 @@ export type BooleanExpr<TInput extends object> =
 	| { $lt: [Expr<TInput>, Expr<TInput>] }
 	| { $lte: [Expr<TInput>, Expr<TInput>] }
 	| { $ne: [Expr<TInput>, Expr<TInput>] }
-	| { $nin: [Expr<TInput>, ArrayExpr<TInput>] }
-	| { $nor: Expr<TInput>[] }
-	| { $not: Expr<TInput> }
+	| { $not: [Expr<TInput>] }
 	| { $or: Expr<TInput>[] }
 	| { $regexMatch: { input: StringExpr<TInput>, options?: StringExpr<TInput>, regex: StringExpr<TInput> } }
 	| { $setEquals: [ArrayExpr<TInput>, ArrayExpr<TInput>] }
@@ -117,33 +115,33 @@ export type NumericExpr<TInput extends object> =
 	| { $cos: NumericExpr<TInput> }
 	| { $cosh: NumericExpr<TInput> }
 	| { $dateDiff: { endDate: DateExpr<TInput>, startDate: DateExpr<TInput>, timezone?: StringExpr<TInput>, unit: StringExpr<TInput> } }
-	| { $dayOfMonth?: DateExpr<TInput> | DateTimezoneExpr<TInput> }
-	| { $dayOfWeek?: DateExpr<TInput> | DateTimezoneExpr<TInput> }
-	| { $dayOfYear?: DateExpr<TInput> | DateTimezoneExpr<TInput> }
+	| { $dayOfMonth: DateExpr<TInput> | DateTimezoneExpr<TInput> }
+	| { $dayOfWeek: DateExpr<TInput> | DateTimezoneExpr<TInput> }
+	| { $dayOfYear: DateExpr<TInput> | DateTimezoneExpr<TInput> }
 	| { $degreesToRadians: NumericExpr<TInput> }
 	| { $divide: [NumericExpr<TInput>, NumericExpr<TInput>] }
 	| { $exp: NumericExpr<TInput> }
 	| { $floor: NumericExpr<TInput> }
-	| { $hour?: DateExpr<TInput> | DateTimezoneExpr<TInput> }
+	| { $hour: DateExpr<TInput> | DateTimezoneExpr<TInput> }
 	| { $indexOfBytes: [StringExpr<TInput>, StringExpr<TInput>, NumericExpr<TInput>?, NumericExpr<TInput>?] }
 	| { $indexOfCP: [StringExpr<TInput>, StringExpr<TInput>, NumericExpr<TInput>?, NumericExpr<TInput>?] }
-	| { $isoDayOfWeek?: DateExpr<TInput> | DateTimezoneExpr<TInput> }
-	| { $isoWeek?: DateExpr<TInput> | DateTimezoneExpr<TInput> }
-	| { $isoWeekYear?: DateExpr<TInput> | DateTimezoneExpr<TInput> }
+	| { $isoDayOfWeek: DateExpr<TInput> | DateTimezoneExpr<TInput> }
+	| { $isoWeek: DateExpr<TInput> | DateTimezoneExpr<TInput> }
+	| { $isoWeekYear: DateExpr<TInput> | DateTimezoneExpr<TInput> }
 	| { $literal: number }
 	| { $ln: NumericExpr<TInput> }
 	| { $log10: NumericExpr<TInput> }
 	| { $log: [NumericExpr<TInput>, NumericExpr<TInput>] } // [value, base]
-	| { $millisecond?: DateExpr<TInput> | DateTimezoneExpr<TInput> }
-	| { $minute?: DateExpr<TInput> | DateTimezoneExpr<TInput> }
+	| { $millisecond: DateExpr<TInput> | DateTimezoneExpr<TInput> }
+	| { $minute: DateExpr<TInput> | DateTimezoneExpr<TInput> }
 	| { $mod: [NumericExpr<TInput>, NumericExpr<TInput>] }
-	| { $month?: DateExpr<TInput> | DateTimezoneExpr<TInput> }
+	| { $month: DateExpr<TInput> | DateTimezoneExpr<TInput> }
 	| { $multiply: NumericExpr<TInput>[] }
 	| { $pow: [NumericExpr<TInput>, NumericExpr<TInput>] }
 	| { $radiansToDegrees: NumericExpr<TInput> }
 	| { $rand: Record<string, never> }
 	| { $round: [NumericExpr<TInput>, NumericExpr<TInput>] | NumericExpr<TInput> }
-	| { $second?: DateExpr<TInput> | DateTimezoneExpr<TInput> }
+	| { $second: DateExpr<TInput> | DateTimezoneExpr<TInput> }
 	| { $sin: NumericExpr<TInput> }
 	| { $sinh: NumericExpr<TInput> }
 	| { $size: ArrayExpr<TInput> }
@@ -160,8 +158,8 @@ export type NumericExpr<TInput extends object> =
 	| { $toInt: Expr<TInput> }
 	| { $toLong: Expr<TInput> }
 	| { $trunc: [NumericExpr<TInput>, NumericExpr<TInput>] | NumericExpr<TInput> }
-	| { $week?: DateExpr<TInput> | DateTimezoneExpr<TInput> }
-	| { $year?: DateExpr<TInput> | DateTimezoneExpr<TInput> }
+	| { $week: DateExpr<TInput> | DateTimezoneExpr<TInput> }
+	| { $year: DateExpr<TInput> | DateTimezoneExpr<TInput> }
 ;
 
 export type StringExpr<TInput extends object> =

@@ -59,6 +59,26 @@ describe('ArrayExpr', () => {
 			type T1 = Assert<Includes<ArrayExpr<User>, { $split: ['$name', '-'] }>>;
 		});
 	});
+
+	describe('$setIntersection', () => {
+		it('should accept two arrays', () => {
+			type T1 = Assert<Includes<ArrayExpr<User>, { $setIntersection: ['$tags', '$tags'] }>>;
+		});
+
+		it('should accept more than two arrays', () => {
+			type T1 = Assert<Includes<ArrayExpr<User>, { $setIntersection: ['$tags', '$tags', '$tags'] }>>;
+		});
+	});
+
+	describe('$setUnion', () => {
+		it('should accept two arrays', () => {
+			type T1 = Assert<Includes<ArrayExpr<User>, { $setUnion: ['$tags', '$tags'] }>>;
+		});
+
+		it('should accept more than two arrays', () => {
+			type T1 = Assert<Includes<ArrayExpr<User>, { $setUnion: ['$tags', '$tags', '$tags'] }>>;
+		});
+	});
 });
 
 describe('BooleanExpr', () => {
@@ -80,9 +100,51 @@ describe('BooleanExpr', () => {
 		});
 	});
 
+	describe('$allElementsTrue', () => {
+		it('should accept a wrapped array expression', () => {
+			type T1 = Assert<Includes<BooleanExpr<User>, { $allElementsTrue: ['$tags'] }>>;
+		});
+
+		it('should NOT accept a bare (unwrapped) array expression', () => {
+			type T1 = Assert<Not<Includes<BooleanExpr<User>, { $allElementsTrue: '$tags' }>>>;
+		});
+	});
+
+	describe('$anyElementTrue', () => {
+		it('should accept a wrapped array expression', () => {
+			type T1 = Assert<Includes<BooleanExpr<User>, { $anyElementTrue: ['$tags'] }>>;
+		});
+
+		it('should NOT accept a bare (unwrapped) array expression', () => {
+			type T1 = Assert<Not<Includes<BooleanExpr<User>, { $anyElementTrue: '$tags' }>>>;
+		});
+	});
+
 	describe('$isArray', () => {
 		it('should include $isArray operator', () => {
 			type T1 = Assert<Includes<BooleanExpr<User>, { $isArray: '$tags' }>>;
+		});
+	});
+
+	describe('$nin', () => {
+		it('should NOT be a valid aggregation expression operator', () => {
+			type T1 = Assert<Not<Includes<BooleanExpr<User>, { $nin: ['$name', ['alice']] }>>>;
+		});
+	});
+
+	describe('$nor', () => {
+		it('should NOT be a valid aggregation expression operator', () => {
+			type T1 = Assert<Not<Includes<BooleanExpr<User>, { $nor: [true, false] }>>>;
+		});
+	});
+
+	describe('$not', () => {
+		it('should accept a wrapped expression', () => {
+			type T1 = Assert<Includes<BooleanExpr<User>, { $not: [{ $gt: ['$name', 'a'] }] }>>;
+		});
+
+		it('should NOT accept a bare (unwrapped) expression', () => {
+			type T1 = Assert<Not<Includes<BooleanExpr<User>, { $not: '$name' }>>>;
 		});
 	});
 });
@@ -135,6 +197,28 @@ describe('NumericExpr', () => {
 	describe('$strcasecmp', () => {
 		it('should include $strcasecmp operator', () => {
 			type T1 = Assert<Includes<NumericExpr<User>, { $strcasecmp: ['$name', 'alice'] }>>;
+		});
+	});
+
+	describe('date-part operators', () => {
+		it('should accept a valid date expression for each operator', () => {
+			type T1 = Assert<Includes<NumericExpr<User>, { $dayOfMonth: '$createdAt' }>>;
+			type T2 = Assert<Includes<NumericExpr<User>, { $dayOfWeek: '$createdAt' }>>;
+			type T3 = Assert<Includes<NumericExpr<User>, { $dayOfYear: '$createdAt' }>>;
+			type T4 = Assert<Includes<NumericExpr<User>, { $hour: '$createdAt' }>>;
+			type T5 = Assert<Includes<NumericExpr<User>, { $isoDayOfWeek: '$createdAt' }>>;
+			type T6 = Assert<Includes<NumericExpr<User>, { $isoWeek: '$createdAt' }>>;
+			type T7 = Assert<Includes<NumericExpr<User>, { $isoWeekYear: '$createdAt' }>>;
+			type T8 = Assert<Includes<NumericExpr<User>, { $millisecond: '$createdAt' }>>;
+			type T9 = Assert<Includes<NumericExpr<User>, { $minute: '$createdAt' }>>;
+			type T10 = Assert<Includes<NumericExpr<User>, { $month: '$createdAt' }>>;
+			type T11 = Assert<Includes<NumericExpr<User>, { $second: '$createdAt' }>>;
+			type T12 = Assert<Includes<NumericExpr<User>, { $week: '$createdAt' }>>;
+			type T13 = Assert<Includes<NumericExpr<User>, { $year: '$createdAt' }>>;
+		});
+
+		it('should NOT accept an empty object (all keys currently optional — bug)', () => {
+			type T1 = Assert<Not<Includes<NumericExpr<User>, Record<never, never>>>>;
 		});
 	});
 });
