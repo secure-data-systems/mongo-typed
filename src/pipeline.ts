@@ -132,6 +132,20 @@ export type GroupSpec<TInput extends object> = {
 type HasInclusion<TSpec> =
 	[{ [K in keyof TSpec]: TSpec[K] extends 1 | true ? true : never }[keyof TSpec]] extends [never] ? false : true;
 
+/** @internal Resolves a `$field` reference string to its TInput field type. */
+type InferFieldRef<TInput extends object, TKey extends string> =
+	TKey extends keyof TInput ? NonNullable<TInput[TKey]> : unknown;
+
+/** Infers the output type of a $project expression value.
+ *  - `{ $literal: T }` → `T` (passthrough constant)
+ *  - `"$field"` field ref → resolves to the TInput field type
+ *  - Anything else → `unknown`
+ */
+type InferProjectExprType<TInput extends object, TExpr> =
+	TExpr extends { $literal: infer V } ? V
+		: TExpr extends `$${infer K}` ? InferFieldRef<TInput, K>
+			: unknown;
+
 /** Spec for $lookup — equality join or pipeline join */
 export type LookupSpec<TInput extends object, TForeignSchema extends object, TAs extends string> =
 	| {
@@ -306,11 +320,11 @@ export type PipelineStage<TInput extends object> =
 /** @internal Exclusion-mode $project output: TInput minus excluded fields; expression fields override original type with unknown. */
 type ProjectExclusionOutput<TInput extends object, TSpec> =
 	{ [K in keyof TInput as K extends keyof TSpec ? TSpec[K] extends 0 | false ? never : TSpec[K] extends 1 | boolean | true ? K : never : K]: TInput[K] }
-	& { [K in keyof TSpec as TSpec[K] extends 0 | 1 | boolean | false | true ? never : K]: unknown };
+	& { [K in keyof TSpec as TSpec[K] extends 0 | 1 | boolean | false | true ? never : K]: InferProjectExprType<TInput, TSpec[K]> };
 
 /** @internal Inclusion-mode $project output: only spec'd fields, typed from TInput (1|true) or unknown (expressions). */
 type ProjectInclusionOutput<TInput extends object, TSpec> = {
-	[K in keyof TSpec as TSpec[K] extends 0 | false ? never : K]: TSpec[K] extends 1 | true ? (K extends keyof TInput ? TInput[K] : unknown) : unknown
+	[K in keyof TSpec as TSpec[K] extends 0 | false ? never : K]: TSpec[K] extends 1 | true ? (K extends keyof TInput ? TInput[K] : unknown) : InferProjectExprType<TInput, TSpec[K]>
 };
 
 /**
@@ -329,9 +343,9 @@ export type ProjectOutput<TInput extends object, TSpec extends ProjectSpec<TInpu
 export type ProjectSpec<TInput extends object> = {
 	_id?: 0 | 1 | boolean
 } & {
-	[P in keyof TInput]?: 0 | 1 | boolean | Expr<TInput>
+	[P in keyof TInput]?: 0 | 1 | boolean | (Expr<TInput> & (object | string))
 } & {
-	[field: string]: 0 | 1 | boolean | Expr<TInput> | undefined
+	[field: string]: 0 | 1 | boolean | (Expr<TInput> & (object | string)) | undefined
 };
 
 /** Spec for $setWindowFields */
