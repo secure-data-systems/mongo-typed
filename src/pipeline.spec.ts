@@ -8,6 +8,7 @@ import type {
 	GroupSpec,
 	PipelineBuilder,
 	PipelineStage,
+	ProjectOutput,
 	SortSpec,
 	UnwindOutput
 } from './pipeline.js';
@@ -402,21 +403,83 @@ describe('pipeline() builder', () => {
 	});
 
 	describe('project', () => {
-		it('should accept field inclusion/exclusion specs', () => {
-			pipeline<User>().project({ email: 0, name: 1 });
+		describe('inclusion mode (any field = 1)', () => {
+			it('should carry the TInput field type for 1-valued fields', () => {
+				type T1 = Assert<Equals<ProjectOutput<User, { name: 1 }>['name'], string>>;
+			});
+
+			it('should only include specified fields (others dropped)', () => {
+				type T1 = Assert<Equals<keyof ProjectOutput<User, { name: 1 }>, 'name'>>;
+			});
+
+			it('should drop 0-valued fields', () => {
+				type T1 = Assert<Equals<keyof ProjectOutput<User, { _id: 0, name: 1 }>, 'name'>>;
+			});
+
+			it('should infer string for string expression fields', () => {
+				type T1 = Assert<Equals<ProjectOutput<User, { name: 1, upper: { $toUpper: '$name' } }>['upper'], string>>;
+			});
+
+			it('should track the inclusion output schema for downstream stages', () => {
+				pipeline<User>()
+					.project({ name: 1 })
+					.sort({ name: 1 }); // 'name' is in inclusion output
+			});
+
+			it('should reject non-included fields in downstream stages', () => {
+				pipeline<User>()
+					.project({ name: 1 })
+					// @ts-expect-error 'email' was not included in the projection
+					.sort({ email: 1 });
+			});
+
+			it('should reconstruct nested object for dot-notation inclusion field', () => {
+				type T1 = Assert<Equals<ProjectOutput<User, { 'address.city': 1 }>['address'], Array<{ city: string }>>>;
+			});
+
+			it('should use top-level key not flat dot key in inclusion output', () => {
+				type T1 = Assert<Equals<keyof ProjectOutput<User, { 'address.city': 1 }>, 'address'>>;
+			});
+
+			it('should track dot-notation inclusion output for downstream stages', () => {
+				pipeline<User>()
+					.project({ 'address.city': 1 })
+					.sort({ 'address': 1 });
+			});
+
+			it('should reject non-projected top-level fields after dot-notation inclusion', () => {
+				pipeline<User>()
+					.project({ 'address.city': 1 })
+					// @ts-expect-error 'name' was not included in the projection
+					.sort({ name: 1 });
+			});
 		});
 
-		it('should use an explicit TOutput for downstream type tracking', () => {
-			pipeline<User>()
-				.project<{ _id: string, name: string }>({ name: 1 })
-				.sort({ name: 1 }); // 'name' is in TOutput
-		});
+		describe('exclusion mode (no field = 1)', () => {
+			it('should preserve non-excluded TInput field types', () => {
+				type T1 = Assert<Equals<ProjectOutput<User, { email: 0 }>['name'], string>>;
+			});
 
-		it('should reject fields not in the explicit TOutput downstream', () => {
-			pipeline<User>()
-				.project<{ _id: string, name: string }>({ name: 1 })
-				// @ts-expect-error 'email' is not in the explicit TOutput
-				.sort({ email: 1 });
+			it('should allow sorting on retained fields downstream', () => {
+				pipeline<User>()
+					.project({ email: 0 })
+					.sort({ name: 1 }); // 'name' was kept
+			});
+
+			it('should reject excluded fields in downstream stages', () => {
+				pipeline<User>()
+					.project({ email: 0 })
+					// @ts-expect-error 'email' was excluded by the projection
+					.sort({ email: 1 });
+			});
+
+			it('should infer number for numeric expression fields', () => {
+				type T1 = Assert<Equals<ProjectOutput<User, { score: { $multiply: ['$score', 2] } }>['score'], number>>;
+			});
+
+			it('should retain all other fields when a computed field overrides one', () => {
+				type T1 = Assert<Equals<ProjectOutput<User, { score: { $multiply: ['$score', 2] } }>['name'], string>>;
+			});
 		});
 	});
 
@@ -467,9 +530,9 @@ describe('pipeline() builder', () => {
 			});
 		});
 
-		it('should produce Record<string, unknown[]> output schema', () => {
+		it('should produce typed keys in output schema', () => {
 			const builder = pipeline<User>().facet({ byDept: [{ $group: { _id: '$department' } }] });
-			type T1 = Assert<Equals<typeof builder, PipelineBuilder<Record<string, unknown[]>>>>;
+			type T1 = Assert<Equals<typeof builder, PipelineBuilder<{ byDept: unknown[] }>>>;
 		});
 	});
 

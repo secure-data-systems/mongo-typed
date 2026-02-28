@@ -752,7 +752,6 @@ describe('Filter', () => {
 		it('should NOT be a valid query filter operator (aggregation-only)', () => {
 			type ActualString = Filter<User>['name'];
 
-			// @ts-expect-error $rand is currently in FilterOperators but is aggregation-only and should be removed
 			type T1 = Assert<Not<Includes<ActualString, { $rand: Record<string, never> }>>>;
 		});
 	});
@@ -837,7 +836,6 @@ describe('Filter', () => {
 		it('should accept an array of $type values', () => {
 			type Actual = Filter<User>['name'];
 
-			// @ts-expect-error $type array form not yet implemented — MongoDB allows { $type: ['string', 'int'] }
 			type T1 = Assert<Includes<Actual, { $type: ('int' | 'string')[] }>>;
 		});
 	});
@@ -846,28 +844,24 @@ describe('Filter', () => {
 		it('should accept $box on [number, number] field', () => {
 			type Actual = Filter<User>['address.legacyPoint'];
 
-			// @ts-expect-error legacy geo shapes for [number, number] fields not yet implemented
 			type T1 = Assert<Includes<Actual, { $geoWithin: { $box: [[number, number], [number, number]] } }>>;
 		});
 
 		it('should accept $center on [number, number] field', () => {
 			type Actual = Filter<User>['address.legacyPoint'];
 
-			// @ts-expect-error legacy geo shapes for [number, number] fields not yet implemented
 			type T1 = Assert<Includes<Actual, { $geoWithin: { $center: [[number, number], number] } }>>;
 		});
 
 		it('should accept $centerSphere on [number, number] field', () => {
 			type Actual = Filter<User>['address.legacyPoint'];
 
-			// @ts-expect-error legacy geo shapes for [number, number] fields not yet implemented
 			type T1 = Assert<Includes<Actual, { $geoWithin: { $centerSphere: [[number, number], number] } }>>;
 		});
 
 		it('should accept $polygon on [number, number] field', () => {
 			type Actual = Filter<User>['address.legacyPoint'];
 
-			// @ts-expect-error legacy geo shapes for [number, number] fields not yet implemented
 			type T1 = Assert<Includes<Actual, { $geoWithin: { $polygon: [number, number][] } }>>;
 		});
 

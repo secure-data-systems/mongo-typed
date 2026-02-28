@@ -90,6 +90,30 @@ export type FieldPaths<T extends object> = DotNotation<T> extends infer U ? U & 
 
 export type FieldRef<T extends object> = `$${FieldPaths<T>}`;
 
+/** Infers the output type of an expression value using the existing Expr category types.
+ *  - `{ $literal: T }` → `T` (passthrough constant)
+ *  - `"$field"` field ref → resolves to the TInput field type
+ *  - `NumericExpr` operator → `number`
+ *  - `StringExpr` operator → `string`
+ *  - `BooleanExpr` operator → `boolean`
+ *  - `DateExpr` operator → `Date`
+ *  - `ArrayExpr` operator → `unknown[]`
+ *  - Anything else → `unknown`
+ */
+export type InferExprType<TInput extends object, TExpr> =
+	TExpr extends { $literal: infer V } ? V
+		: TExpr extends `$${infer K}` ? InferFieldRef<TInput, K>
+			: TExpr extends NumericExpr<TInput> ? number
+				: TExpr extends StringExpr<TInput> ? string
+					: TExpr extends BooleanExpr<TInput> ? boolean
+						: TExpr extends DateExpr<TInput> ? Date
+							: TExpr extends ArrayExpr<TInput> ? unknown[]
+								: unknown;
+
+/** @internal Resolves a `$field` reference string to its TInput field type. */
+type InferFieldRef<TInput extends object, TKey extends string> =
+	TKey extends keyof TInput ? NonNullable<TInput[TKey]> : unknown;
+
 export type NumericExpr<TInput extends object> =
 	| FieldRef<TInput>
 	| number
@@ -152,8 +176,7 @@ export type NumericExpr<TInput extends object> =
 	| { $toLong: Expr<TInput> }
 	| { $trunc: [NumericExpr<TInput>, NumericExpr<TInput>] | NumericExpr<TInput> }
 	| { $week: DateExpr<TInput> | DateTimezoneExpr<TInput> }
-	| { $year: DateExpr<TInput> | DateTimezoneExpr<TInput> }
-;
+	| { $year: DateExpr<TInput> | DateTimezoneExpr<TInput> };
 
 export type ObjectExpr<TInput extends object> =
 	| { $getField: StringExpr<TInput> | { field: StringExpr<TInput>, input?: Expr<TInput> } }
