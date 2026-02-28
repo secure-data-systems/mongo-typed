@@ -43,7 +43,7 @@ export declare interface FilterOperators<TValue> {
 	$exists?: boolean,
 	$expr?: Expr<TValue extends object ? TValue : object>,
 	$geoIntersects?: TValue extends GeoJson ? { $geometry: GeoJson } : never,
-	$geoWithin?: TValue extends GeoJsonMultiPolygon | GeoJsonPolygon ? { $geometry: GeoJsonMultiPolygon | GeoJsonPolygon } : never,
+	$geoWithin?: TValue extends GeoJsonMultiPolygon | GeoJsonPolygon ? { $geometry: GeoJsonMultiPolygon | GeoJsonPolygon } : TValue extends [number, number] ? { $box: [[number, number], [number, number]] } | { $center: [[number, number], number] } | { $centerSphere: [[number, number], number] } | { $polygon: [number, number][] } : never,
 	$gt?: NonNullable<TValue> extends ReadonlyArray<infer U> ? U : TValue,
 	$gte?: NonNullable<TValue> extends ReadonlyArray<infer U> ? U : TValue,
 	$in?: NonNullable<TValue> extends ReadonlyArray<infer U> ? ReadonlyArray<TValue> | ReadonlyArray<U> : ReadonlyArray<TValue>,
@@ -58,10 +58,9 @@ export declare interface FilterOperators<TValue> {
 	$nin?: NonNullable<TValue> extends ReadonlyArray<infer U> ? ReadonlyArray<TValue> | ReadonlyArray<U> : ReadonlyArray<TValue>,
 	$not?: TValue extends string ? FilterOperators<TValue> | RegExp : FilterOperators<TValue>,
 	$options?: TValue extends string ? string : never,
-	$rand?: Record<string, never>,
 	$regex?: TValue extends string ? RegExp | string : never,
 	$size?: TValue extends ReadonlyArray<any> ? number : never,
-	$type?: BsonType | BsonTypeNumeric
+	$type?: Array<BsonType | BsonTypeNumeric> | BsonType | BsonTypeNumeric
 }
 
 export declare interface NearFilter {
@@ -73,6 +72,7 @@ export declare interface NearFilter {
 export declare interface ObjFilterOperators<TSchema extends object> {
 	$and?: ObjFilter<TSchema>[],
 	$comment?: Document | string,
+	$expr?: Expr<TSchema>,
 	$jsonSchema?: JsonSchema,
 	$nor?: ObjFilter<TSchema>[],
 	$or?: ObjFilter<TSchema>[],

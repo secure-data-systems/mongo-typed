@@ -18,6 +18,7 @@ interface User {
 	_id: string,
 	address: {
 		city?: string,
+		legacyPoint: [number, number],
 		location: GeoJsonPoint,
 		region: GeoJsonPolygon,
 		tupleLocation: [],
@@ -748,18 +749,11 @@ describe('Filter', () => {
 	});
 
 	describe('$rand', () => {
-		it('should allow $rand on any field', () => {
+		it('should NOT be a valid query filter operator (aggregation-only)', () => {
 			type ActualString = Filter<User>['name'];
-			type ActualNumber = Filter<User>['age'];
-			type ActualBoolean = Filter<User>['isHuman'];
-			type ActualObject = Filter<User>['address'];
-			type ActualArray = Filter<User>['roles'];
 
-			type T1 = Assert<Includes<ActualString, { $rand: Record<string, never> }>>;
-			type T2 = Assert<Includes<ActualNumber, { $rand: Record<string, never> }>>;
-			type T3 = Assert<Includes<ActualBoolean, { $rand: Record<string, never> }>>;
-			type T4 = Assert<Includes<ActualObject, { $rand: Record<string, never> }>>;
-			type T5 = Assert<Includes<ActualArray, { $rand: Record<string, never> }>>;
+			// @ts-expect-error $rand is currently in FilterOperators but is aggregation-only and should be removed
+			type T1 = Assert<Not<Includes<ActualString, { $rand: Record<string, never> }>>>;
 		});
 	});
 
@@ -838,6 +832,55 @@ describe('Filter', () => {
 			type T4 = Assert<Includes<ActualObject, { $type: 'object' }>>;
 			type T5 = Assert<Includes<ActualArray, { $type: 'array' }>>;
 			type T6 = Assert<Includes<ActualOptionalArray, { $type: 'array' }>>;
+		});
+
+		it('should accept an array of $type values', () => {
+			type Actual = Filter<User>['name'];
+
+			// @ts-expect-error $type array form not yet implemented — MongoDB allows { $type: ['string', 'int'] }
+			type T1 = Assert<Includes<Actual, { $type: ('int' | 'string')[] }>>;
+		});
+	});
+
+	describe('$geoWithin legacy shapes', () => {
+		it('should accept $box on [number, number] field', () => {
+			type Actual = Filter<User>['address.legacyPoint'];
+
+			// @ts-expect-error legacy geo shapes for [number, number] fields not yet implemented
+			type T1 = Assert<Includes<Actual, { $geoWithin: { $box: [[number, number], [number, number]] } }>>;
+		});
+
+		it('should accept $center on [number, number] field', () => {
+			type Actual = Filter<User>['address.legacyPoint'];
+
+			// @ts-expect-error legacy geo shapes for [number, number] fields not yet implemented
+			type T1 = Assert<Includes<Actual, { $geoWithin: { $center: [[number, number], number] } }>>;
+		});
+
+		it('should accept $centerSphere on [number, number] field', () => {
+			type Actual = Filter<User>['address.legacyPoint'];
+
+			// @ts-expect-error legacy geo shapes for [number, number] fields not yet implemented
+			type T1 = Assert<Includes<Actual, { $geoWithin: { $centerSphere: [[number, number], number] } }>>;
+		});
+
+		it('should accept $polygon on [number, number] field', () => {
+			type Actual = Filter<User>['address.legacyPoint'];
+
+			// @ts-expect-error legacy geo shapes for [number, number] fields not yet implemented
+			type T1 = Assert<Includes<Actual, { $geoWithin: { $polygon: [number, number][] } }>>;
+		});
+
+		it('should NOT allow legacy shapes on GeoJson fields', () => {
+			type Actual = Filter<User>['address.region'];
+
+			type T1 = Assert<Not<Includes<Actual, { $geoWithin: { $box: [[number, number], [number, number]] } }>>>;
+		});
+	});
+
+	describe('$expr', () => {
+		it('should accept $expr at the top-level filter with a valid aggregation expression', () => {
+			type T1 = Assert<Includes<Filter<User>, { $expr: { $gt: ['$age', 18] } }>>;
 		});
 	});
 });

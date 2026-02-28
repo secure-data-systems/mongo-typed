@@ -1,4 +1,4 @@
-import { NumericBsonType } from './bson-types.js';
+import { BsonType, BsonTypeNumeric } from './bson-types.js';
 import { DotNotation } from './dot-notation.js';
 
 export type ArrayExpr<TInput extends object> =
@@ -7,7 +7,7 @@ export type ArrayExpr<TInput extends object> =
 	| { $arrayElemAt: [ArrayExpr<TInput>, NumericExpr<TInput>] }
 	| { $arrayToObject: ArrayExpr<TInput> }
 	| { $concatArrays: ArrayExpr<TInput>[] }
-	| { $filter: { as?: string, cond: BooleanExpr<TInput>, input: ArrayExpr<TInput> } }
+	| { $filter: { as?: string, cond: BooleanExpr<TInput>, input: ArrayExpr<TInput>, limit?: NumericExpr<TInput> } }
 	| { $first: ArrayExpr<TInput> }
 	| { $indexOfArray: [ArrayExpr<TInput>, Expr<TInput>, NumericExpr<TInput>?, NumericExpr<TInput>?] }
 	| { $last: ArrayExpr<TInput> }
@@ -21,6 +21,7 @@ export type ArrayExpr<TInput extends object> =
 	| { $setIntersection: [ArrayExpr<TInput>, ArrayExpr<TInput>, ...ArrayExpr<TInput>[]] }
 	| { $setUnion: ArrayExpr<TInput>[] }
 	| { $slice: [ArrayExpr<TInput>, NumericExpr<TInput>, NumericExpr<TInput>?] }
+	| { $sortArray: { input: ArrayExpr<TInput>, sortBy: -1 | 1 | Record<string, -1 | 1> } }
 	| { $split: [StringExpr<TInput>, StringExpr<TInput>] }
 	| { $zip: { defaults?: ArrayExpr<TInput>, inputs: ArrayExpr<TInput>[], useLongestLength?: boolean } };
 
@@ -35,6 +36,7 @@ export type BooleanExpr<TInput extends object> =
 	| { $gte: [Expr<TInput>, Expr<TInput>] }
 	| { $in: [Expr<TInput>, ArrayExpr<TInput>] }
 	| { $isArray: Expr<TInput> }
+	| { $isNumber: Expr<TInput> }
 	| { $literal: boolean }
 	| { $lt: [Expr<TInput>, Expr<TInput>] }
 	| { $lte: [Expr<TInput>, Expr<TInput>] }
@@ -43,31 +45,20 @@ export type BooleanExpr<TInput extends object> =
 	| { $or: Expr<TInput>[] }
 	| { $regexMatch: { input: StringExpr<TInput>, options?: StringExpr<TInput>, regex: StringExpr<TInput> } }
 	| { $setEquals: [ArrayExpr<TInput>, ArrayExpr<TInput>] }
-	| { $setIsSubset: [ArrayExpr<TInput>, ArrayExpr<TInput>] };
+	| { $setIsSubset: [ArrayExpr<TInput>, ArrayExpr<TInput>] }
+	| { $toBool: Expr<TInput> };
 
-export interface ConditionalExpr<TInput extends object> {
-	$cond?:
-		[Expr<TInput>, Expr<TInput>, Expr<TInput>]
-		| {
-			else: Expr<TInput>,
-			if: Expr<TInput>,
-			then: Expr<TInput>
-		},
-	$ifNull?: [Expr<TInput>, Expr<TInput>],
-	$switch?: {
-		branches: {
-			case: Expr<TInput>,
-			then: Expr<TInput>
-		}[],
-		default: Expr<TInput>
-	}
-}
+export type ConditionalExpr<TInput extends object> =
+	| { $cond: [Expr<TInput>, Expr<TInput>, Expr<TInput>] | { else: Expr<TInput>, if: Expr<TInput>, then: Expr<TInput> } }
+	| { $ifNull: [Expr<TInput>, Expr<TInput>, ...Expr<TInput>[]] }
+	| { $switch: { branches: { case: Expr<TInput>, then: Expr<TInput> }[], default?: Expr<TInput> } };
 
 export type DateExpr<TInput extends object> =
 	| Date
 	| FieldRef<TInput>
 	| { $dateAdd: { amount: NumericExpr<TInput>, startDate: DateExpr<TInput>, timezone?: StringExpr<TInput>, unit: StringExpr<TInput> } }
 	| { $dateFromParts: { day?: NumericExpr<TInput>, hour?: NumericExpr<TInput>, millisecond?: NumericExpr<TInput>, minute?: NumericExpr<TInput>, month?: NumericExpr<TInput>, second?: NumericExpr<TInput>, timezone?: StringExpr<TInput>, year: NumericExpr<TInput> } }
+	| { $dateFromParts: { isoDayOfWeek?: NumericExpr<TInput>, isoWeek?: NumericExpr<TInput>, isoWeekYear: NumericExpr<TInput>, timezone?: StringExpr<TInput> } }
 	| { $dateFromString: { dateString: StringExpr<TInput>, format?: StringExpr<TInput>, onError?: Expr<TInput>, onNull?: Expr<TInput>, timezone?: StringExpr<TInput> } }
 	| { $dateSubtract: { amount: NumericExpr<TInput>, startDate: DateExpr<TInput>, timezone?: StringExpr<TInput>, unit: StringExpr<TInput> } }
 	| { $dateTrunc: { binSize?: NumericExpr<TInput>, date: DateExpr<TInput>, startOfWeek?: StringExpr<TInput>, timezone?: StringExpr<TInput>, unit: StringExpr<TInput> } }
@@ -80,7 +71,7 @@ export interface DatePartsExpr<TInput extends object> {
 
 export interface DateTimezoneExpr<TInput extends object> {
 	date: DateExpr<TInput>,
-	timezone: StringExpr<TInput>
+	timezone?: StringExpr<TInput>
 }
 
 export type Expr<T extends object> =
@@ -90,6 +81,7 @@ export type Expr<T extends object> =
 	| DateExpr<T>
 	| DatePartsExpr<T>
 	| NumericExpr<T>
+	| ObjectExpr<T>
 	| StringExpr<T>
 	| TypeExpr<T>
 	| VariableExpr<T>;
@@ -111,10 +103,11 @@ export type NumericExpr<TInput extends object> =
 	| { $atan: NumericExpr<TInput> }
 	| { $atanh: NumericExpr<TInput> }
 	| { $ceil: NumericExpr<TInput> }
-	| { $convert: { input: Expr<TInput>, onError?: Expr<TInput>, onNull?: Expr<TInput>, to: NumericBsonType | { type: NumericBsonType } } }
+	| { $cmp: [Expr<TInput>, Expr<TInput>] }
+	| { $convert: { input: Expr<TInput>, onError?: Expr<TInput>, onNull?: Expr<TInput>, to: BsonType | BsonTypeNumeric } }
 	| { $cos: NumericExpr<TInput> }
 	| { $cosh: NumericExpr<TInput> }
-	| { $dateDiff: { endDate: DateExpr<TInput>, startDate: DateExpr<TInput>, timezone?: StringExpr<TInput>, unit: StringExpr<TInput> } }
+	| { $dateDiff: { endDate: DateExpr<TInput>, startDate: DateExpr<TInput>, startOfWeek?: StringExpr<TInput>, timezone?: StringExpr<TInput>, unit: StringExpr<TInput> } }
 	| { $dayOfMonth: DateExpr<TInput> | DateTimezoneExpr<TInput> }
 	| { $dayOfWeek: DateExpr<TInput> | DateTimezoneExpr<TInput> }
 	| { $dayOfYear: DateExpr<TInput> | DateTimezoneExpr<TInput> }
@@ -162,6 +155,12 @@ export type NumericExpr<TInput extends object> =
 	| { $year: DateExpr<TInput> | DateTimezoneExpr<TInput> }
 ;
 
+export type ObjectExpr<TInput extends object> =
+	| { $getField: StringExpr<TInput> | { field: StringExpr<TInput>, input?: Expr<TInput> } }
+	| { $mergeObjects: ArrayExpr<TInput> }
+	| { $regexFind: { input: StringExpr<TInput>, options?: StringExpr<TInput>, regex: StringExpr<TInput> } }
+	| { $regexFindAll: { input: StringExpr<TInput>, options?: StringExpr<TInput>, regex: StringExpr<TInput> } };
+
 export type StringExpr<TInput extends object> =
 	| FieldRef<TInput>
 	| string
@@ -180,9 +179,9 @@ export type StringExpr<TInput extends object> =
 	| { $toUpper: StringExpr<TInput> }
 	| { $trim: { chars?: StringExpr<TInput>, input: StringExpr<TInput> } };
 
-export interface TypeExpr<TInput extends object> {
-	$type: Expr<TInput>
-}
+export type TypeExpr<TInput extends object> =
+	| { $toObjectId: Expr<TInput> }
+	| { $type: Expr<TInput> };
 
 export type VariableExpr<TInput extends object> =
 	| { $let: { in: Expr<TInput>, vars: Record<string, Expr<TInput>> } }
