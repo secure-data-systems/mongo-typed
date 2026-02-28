@@ -416,8 +416,8 @@ describe('pipeline() builder', () => {
 				type T1 = Assert<Equals<keyof ProjectOutput<User, { _id: 0, name: 1 }>, 'name'>>;
 			});
 
-			it('should type expression fields as unknown', () => {
-				type T1 = Assert<Equals<ProjectOutput<User, { name: 1, upper: { $toUpper: '$name' } }>['upper'], unknown>>;
+			it('should infer string for string expression fields', () => {
+				type T1 = Assert<Equals<ProjectOutput<User, { name: 1, upper: { $toUpper: '$name' } }>['upper'], string>>;
 			});
 
 			it('should track the inclusion output schema for downstream stages', () => {
@@ -452,8 +452,8 @@ describe('pipeline() builder', () => {
 					.sort({ email: 1 });
 			});
 
-			it('should type computed expression fields as unknown, removing the original type', () => {
-				type T1 = Assert<Equals<ProjectOutput<User, { score: { $multiply: ['$score', 2] } }>['score'], unknown>>;
+			it('should infer number for numeric expression fields', () => {
+				type T1 = Assert<Equals<ProjectOutput<User, { score: { $multiply: ['$score', 2] } }>['score'], number>>;
 			});
 
 			it('should retain all other fields when a computed field overrides one', () => {

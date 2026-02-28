@@ -1,5 +1,5 @@
 import { DotNotation } from './dot-notation.js';
-import { Expr, FieldRef, NumericExpr } from './expr.js';
+import { BooleanExpr, DateExpr, Expr, FieldRef, NumericExpr, StringExpr } from './expr.js';
 import { Filter } from './filter.js';
 import { GeoJsonPoint } from './geo-json.js';
 
@@ -61,98 +61,6 @@ export interface DensifySpec<TInput extends object> {
 		step: number,
 		unit?: 'day' | 'hour' | 'millisecond' | 'minute' | 'month' | 'quarter' | 'second' | 'week' | 'year'
 	}
-}
-
-/** Maps MongoDB expression operator keys to their deterministic return types.
- *  Used by InferProjectExprType to resolve computed field types in $project output.
- */
-interface ExprReturnTypeMap {
-	$abs: number,
-	$acos: number,
-	$acosh: number,
-	$add: number,
-	$allElementsTrue: boolean,
-	$anyElementTrue: boolean,
-	$asin: number,
-	$asinh: number,
-	$atan: number,
-	$atan2: number,
-	$atanh: number,
-	$avg: number,
-	$ceil: number,
-	$cmp: number,
-	$concat: string,
-	$cos: number,
-	$cosh: number,
-	$dateAdd: Date,
-	$dateDiff: number,
-	$dateFromParts: Date,
-	$dateFromString: Date,
-	$dateSubtract: Date,
-	$dateToString: string,
-	$dateTrunc: Date,
-	$dayOfMonth: number,
-	$dayOfWeek: number,
-	$dayOfYear: number,
-	$degreesToRadians: number,
-	$divide: number,
-	$exp: number,
-	$floor: number,
-	$hour: number,
-	$indexOfArray: number,
-	$indexOfBytes: number,
-	$indexOfCP: number,
-	$isArray: boolean,
-	$isNumber: boolean,
-	$isoDayOfWeek: number,
-	$isoWeek: number,
-	$isoWeekYear: number,
-	$ln: number,
-	$log: number,
-	$log10: number,
-	$ltrim: string,
-	$millisecond: number,
-	$minute: number,
-	$mod: number,
-	$month: number,
-	$multiply: number,
-	$pow: number,
-	$radiansToDegrees: number,
-	$replaceAll: string,
-	$replaceOne: string,
-	$round: number,
-	$rtrim: string,
-	$second: number,
-	$sin: number,
-	$sinh: number,
-	$size: number,
-	$sqrt: number,
-	$stdDevPop: number,
-	$stdDevSamp: number,
-	$strcasecmp: number,
-	$strLenBytes: number,
-	$strLenCP: number,
-	$substr: string,
-	$substrBytes: string,
-	$substrCP: string,
-	$subtract: number,
-	$sum: number,
-	$tan: number,
-	$tanh: number,
-	$toBool: boolean,
-	$toDate: Date,
-	$toDecimal: number,
-	$toDouble: number,
-	$toInt: number,
-	$toLong: number,
-	$toLower: string,
-	$toString: string,
-	$toUpper: string,
-	$trim: string,
-	$trunc: number,
-	$type: string,
-	$week: number,
-	$year: number
 }
 
 /** Spec for $fill */
@@ -228,16 +136,23 @@ type HasInclusion<TSpec> =
 type InferFieldRef<TInput extends object, TKey extends string> =
 	TKey extends keyof TInput ? NonNullable<TInput[TKey]> : unknown;
 
-/** Infers the output type of a $project expression value.
+/** Infers the output type of a $project expression value using the existing Expr category types.
  *  - `{ $literal: T }` → `T` (passthrough constant)
  *  - `"$field"` field ref → resolves to the TInput field type
+ *  - `NumericExpr` operator → `number`
+ *  - `StringExpr` operator → `string`
+ *  - `BooleanExpr` operator → `boolean`
+ *  - `DateExpr` operator → `Date`
  *  - Anything else → `unknown`
  */
 type InferProjectExprType<TInput extends object, TExpr> =
 	TExpr extends { $literal: infer V } ? V
 		: TExpr extends `$${infer K}` ? InferFieldRef<TInput, K>
-			: [keyof TExpr & keyof ExprReturnTypeMap] extends [never] ? unknown
-				: ExprReturnTypeMap[keyof TExpr & keyof ExprReturnTypeMap];
+			: TExpr extends NumericExpr<TInput> ? number
+				: TExpr extends StringExpr<TInput> ? string
+					: TExpr extends BooleanExpr<TInput> ? boolean
+						: TExpr extends DateExpr<TInput> ? Date
+							: unknown;
 
 /** Spec for $lookup — equality join or pipeline join */
 export type LookupSpec<TInput extends object, TForeignSchema extends object, TAs extends string> =
