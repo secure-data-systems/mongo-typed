@@ -1,5 +1,5 @@
 import { DotNotation } from './dot-notation.js';
-import { ArrayExpr, BooleanExpr, DateExpr, Expr, FieldRef, NumericExpr, StringExpr } from './expr.js';
+import { Expr, FieldRef, InferExprType, NumericExpr } from './expr.js';
 import { Filter } from './filter.js';
 import { GeoJsonPoint } from './geo-json.js';
 
@@ -31,7 +31,7 @@ export type AccumulatorExpr<TInput extends object> =
 
 /** Inferred output type of an $addFields / $set stage — maps each spec key to its expression return type. */
 export type AddFieldsOutput<TInput extends object, TFields extends AddFieldsSpec<TInput>> = {
-	[K in keyof TFields]: InferProjectExprType<TInput, TFields[K]>
+	[K in keyof TFields]: InferExprType<TInput, TFields[K]>
 };
 
 /** Fields to add or overwrite via $addFields / $set */
@@ -139,30 +139,6 @@ export type GroupSpec<TInput extends object> = {
 /** True if TSpec has any field with value `1 | true` — signals $project inclusion mode. */
 type HasInclusion<TSpec> =
 	[{ [K in keyof TSpec]: TSpec[K] extends 1 | true ? true : never }[keyof TSpec]] extends [never] ? false : true;
-
-/** @internal Resolves a `$field` reference string to its TInput field type. */
-type InferFieldRef<TInput extends object, TKey extends string> =
-	TKey extends keyof TInput ? NonNullable<TInput[TKey]> : unknown;
-
-/** Infers the output type of a $project expression value using the existing Expr category types.
- *  - `{ $literal: T }` → `T` (passthrough constant)
- *  - `"$field"` field ref → resolves to the TInput field type
- *  - `NumericExpr` operator → `number`
- *  - `StringExpr` operator → `string`
- *  - `BooleanExpr` operator → `boolean`
- *  - `DateExpr` operator → `Date`
- *  - `ArrayExpr` operator → `unknown[]`
- *  - Anything else → `unknown`
- */
-type InferProjectExprType<TInput extends object, TExpr> =
-	TExpr extends { $literal: infer V } ? V
-		: TExpr extends `$${infer K}` ? InferFieldRef<TInput, K>
-			: TExpr extends NumericExpr<TInput> ? number
-				: TExpr extends StringExpr<TInput> ? string
-					: TExpr extends BooleanExpr<TInput> ? boolean
-						: TExpr extends DateExpr<TInput> ? Date
-							: TExpr extends ArrayExpr<TInput> ? unknown[]
-								: unknown;
 
 /** Spec for $lookup — equality join or pipeline join */
 export type LookupSpec<TInput extends object, TForeignSchema extends object, TAs extends string> =
@@ -338,11 +314,11 @@ export type PipelineStage<TInput extends object> =
 /** @internal Exclusion-mode $project output: TInput minus excluded fields; expression fields override original type with unknown. */
 type ProjectExclusionOutput<TInput extends object, TSpec> =
 	{ [K in keyof TInput as K extends keyof TSpec ? TSpec[K] extends 0 | false ? never : TSpec[K] extends 1 | boolean | true ? K : never : K]: TInput[K] }
-	& { [K in keyof TSpec as TSpec[K] extends 0 | 1 | boolean | false | true ? never : K]: InferProjectExprType<TInput, TSpec[K]> };
+	& { [K in keyof TSpec as TSpec[K] extends 0 | 1 | boolean | false | true ? never : K]: InferExprType<TInput, TSpec[K]> };
 
 /** @internal Inclusion-mode $project output: only spec'd fields, typed from TInput (1|true) or unknown (expressions). */
 type ProjectInclusionOutput<TInput extends object, TSpec> = {
-	[K in keyof TSpec as TSpec[K] extends 0 | false ? never : K]: TSpec[K] extends 1 | true ? (K extends keyof TInput ? TInput[K] : unknown) : InferProjectExprType<TInput, TSpec[K]>
+	[K in keyof TSpec as TSpec[K] extends 0 | false ? never : K]: TSpec[K] extends 1 | true ? (K extends keyof TInput ? TInput[K] : unknown) : InferExprType<TInput, TSpec[K]>
 };
 
 /**
@@ -361,7 +337,7 @@ export type ProjectOutput<TInput extends object, TSpec extends ProjectSpec<TInpu
 export type ProjectSpec<TInput extends object> = {
 	_id?: 0 | 1 | boolean
 } & {
-	[P in keyof TInput]?: 0 | 1 | boolean | (Expr<TInput> & (object | string))
+	[P in DotNotation<TInput>]?: 0 | 1 | boolean | (Expr<TInput> & (object | string))
 } & {
 	[field: string]: 0 | 1 | boolean | (Expr<TInput> & (object | string)) | undefined
 };
@@ -442,7 +418,7 @@ class PipelineBuilderImpl<TInput extends object> implements PipelineBuilder<TInp
 	}
 
 	addFields<TFields extends AddFieldsSpec<TInput>>(spec: TFields): PipelineBuilder<TInput & AddFieldsOutput<TInput, TFields>> {
-		return this.push({ $addFields: spec }) as PipelineBuilder<TInput & AddFieldsOutput<TInput, TFields>>;
+		return this.push({ $addFields: spec });
 	}
 
 	build(): PipelineStage<any>[] {
@@ -450,29 +426,29 @@ class PipelineBuilderImpl<TInput extends object> implements PipelineBuilder<TInp
 	}
 
 	count<TField extends string>(field: TField): PipelineBuilder<Record<TField, number>> {
-		return this.push({ $count: field }) as PipelineBuilder<Record<TField, number>>;
+		return this.push({ $count: field });
 	}
 
 	facet<TSpec extends Record<string, PipelineStage<TInput>[]>>(spec: TSpec): PipelineBuilder<FacetOutput<TSpec>> {
-		return this.push({ $facet: spec }) as PipelineBuilder<FacetOutput<TSpec>>;
+		return this.push({ $facet: spec });
 	}
 
 	group<TSpec extends GroupSpec<TInput>>(spec: TSpec): PipelineBuilder<GroupOutput<TInput, TSpec>> {
-		return this.push({ $group: spec }) as PipelineBuilder<GroupOutput<TInput, TSpec>>;
+		return this.push({ $group: spec });
 	}
 
 	limit(n: number): PipelineBuilder<TInput> {
-		return this.push({ $limit: n }) as PipelineBuilder<TInput>;
+		return this.push({ $limit: n });
 	}
 
 	lookup<TForeignSchema extends object, TAs extends string>(
 		spec: LookupSpec<TInput, TForeignSchema, TAs>
 	): PipelineBuilder<TInput & Record<TAs, TForeignSchema[]>> {
-		return this.push({ $lookup: spec }) as PipelineBuilder<TInput & Record<TAs, TForeignSchema[]>>;
+		return this.push({ $lookup: spec });
 	}
 
 	match(filter: Filter<TInput>): PipelineBuilder<TInput> {
-		return this.push({ $match: filter }) as PipelineBuilder<TInput>;
+		return this.push({ $match: filter });
 	}
 
 	merge(spec: MergeSpec): PipelineStage<any>[] {
@@ -484,7 +460,7 @@ class PipelineBuilderImpl<TInput extends object> implements PipelineBuilder<TInp
 	}
 
 	project<TSpec extends ProjectSpec<TInput>>(spec: TSpec): PipelineBuilder<ProjectOutput<TInput, TSpec>> {
-		return this.push({ $project: spec }) as PipelineBuilder<ProjectOutput<TInput, TSpec>>;
+		return this.push({ $project: spec });
 	}
 
 	private push(stage: object): PipelineBuilderImpl<any> {
@@ -492,44 +468,44 @@ class PipelineBuilderImpl<TInput extends object> implements PipelineBuilder<TInp
 	}
 
 	replaceRoot<TOutput extends object = Record<string, unknown>>(spec: { newRoot: Expr<TInput> }): PipelineBuilder<TOutput> {
-		return this.push({ $replaceRoot: spec }) as PipelineBuilder<TOutput>;
+		return this.push({ $replaceRoot: spec });
 	}
 
 	replaceWith<TOutput extends object = Record<string, unknown>>(expr: Expr<TInput>): PipelineBuilder<TOutput> {
-		return this.push({ $replaceWith: expr }) as PipelineBuilder<TOutput>;
+		return this.push({ $replaceWith: expr });
 	}
 
 	sample(spec: { size: number }): PipelineBuilder<TInput> {
-		return this.push({ $sample: spec }) as PipelineBuilder<TInput>;
+		return this.push({ $sample: spec });
 	}
 
 	set<TFields extends AddFieldsSpec<TInput>>(spec: TFields): PipelineBuilder<TInput & AddFieldsOutput<TInput, TFields>> {
-		return this.push({ $set: spec }) as PipelineBuilder<TInput & AddFieldsOutput<TInput, TFields>>;
+		return this.push({ $set: spec });
 	}
 
 	setWindowFields(spec: SetWindowFieldsSpec<TInput>): PipelineBuilder<TInput> {
-		return this.push({ $setWindowFields: spec }) as PipelineBuilder<TInput>;
+		return this.push({ $setWindowFields: spec });
 	}
 
 	skip(n: number): PipelineBuilder<TInput> {
-		return this.push({ $skip: n }) as PipelineBuilder<TInput>;
+		return this.push({ $skip: n });
 	}
 
 	sort(spec: SortSpec<TInput>): PipelineBuilder<TInput> {
-		return this.push({ $sort: spec }) as PipelineBuilder<TInput>;
+		return this.push({ $sort: spec });
 	}
 
 	sortByCount(expr: Expr<TInput>): PipelineBuilder<{ _id: unknown, count: number }> {
-		return this.push({ $sortByCount: expr }) as PipelineBuilder<{ _id: unknown, count: number }>;
+		return this.push({ $sortByCount: expr });
 	}
 
 	unset<T extends DotNotation<TInput>>(fields: T | T[]): PipelineBuilder<Omit<TInput, T>> {
-		return this.push({ $unset: fields }) as PipelineBuilder<Omit<TInput, T>>;
+		return this.push({ $unset: fields });
 	}
 
 	unwind<TField extends FieldRef<TInput>>(
 		spec: TField | UnwindOptions<TInput, TField>
 	): PipelineBuilder<UnwindOutput<TInput, TField>> {
-		return this.push({ $unwind: spec }) as PipelineBuilder<UnwindOutput<TInput, TField>>;
+		return this.push({ $unwind: spec });
 	}
 }
