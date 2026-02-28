@@ -1,5 +1,5 @@
 import { DotNotation } from './dot-notation.js';
-import { BooleanExpr, DateExpr, Expr, FieldRef, NumericExpr, StringExpr } from './expr.js';
+import { ArrayExpr, BooleanExpr, DateExpr, Expr, FieldRef, NumericExpr, StringExpr } from './expr.js';
 import { Filter } from './filter.js';
 import { GeoJsonPoint } from './geo-json.js';
 
@@ -143,6 +143,7 @@ type InferFieldRef<TInput extends object, TKey extends string> =
  *  - `StringExpr` operator → `string`
  *  - `BooleanExpr` operator → `boolean`
  *  - `DateExpr` operator → `Date`
+ *  - `ArrayExpr` operator → `unknown[]`
  *  - Anything else → `unknown`
  */
 type InferProjectExprType<TInput extends object, TExpr> =
@@ -152,7 +153,8 @@ type InferProjectExprType<TInput extends object, TExpr> =
 				: TExpr extends StringExpr<TInput> ? string
 					: TExpr extends BooleanExpr<TInput> ? boolean
 						: TExpr extends DateExpr<TInput> ? Date
-							: unknown;
+							: TExpr extends ArrayExpr<TInput> ? unknown[]
+								: unknown;
 
 /** Spec for $lookup — equality join or pipeline join */
 export type LookupSpec<TInput extends object, TForeignSchema extends object, TAs extends string> =
