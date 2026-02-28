@@ -68,6 +68,15 @@ export interface DensifySpec<TInput extends object> {
 	}
 }
 
+/** @internal Merges all dot-notation inclusion paths in a $project spec into a nested object type. */
+type DotNotationInclusionMerge<TInput extends object, TSpec> =
+	[DotPathsUnion<TInput, TSpec>] extends [never] ? unknown : UnionToIntersection<DotPathsUnion<TInput, TSpec>>;
+
+/** @internal Union of PathToNested results for all non-excluded dot-notation fields in TSpec. */
+type DotPathsUnion<TInput extends object, TSpec> = {
+	[K in keyof TSpec & string]: K extends `${string}.${string}` ? TSpec[K] extends 0 | false ? never : PathToNested<TInput, K> : never
+}[keyof TSpec & string];
+
 /** Inferred output type of a $facet stage — each key becomes `unknown[]`. */
 export type FacetOutput<TSpec> = { [K in keyof TSpec]: unknown[] };
 
@@ -163,6 +172,20 @@ export interface MergeSpec {
 	whenMatched?: 'fail' | 'keepExisting' | 'merge' | 'replace' | PipelineStage<any>[],
 	whenNotMatched?: 'discard' | 'fail' | 'insert'
 }
+
+/** @internal Builds a nested object type from a dot-notation path, preserving array wrappers at intermediate array fields. */
+type PathToNested<TInput extends object, TPath extends string> =
+	TPath extends `${infer Head}.${infer Rest}`
+		? Head extends keyof TInput
+			? NonNullable<TInput[Head]> extends readonly (infer U)[]
+				? { [K in Head]: Array<U extends object ? PathToNested<U, Rest> : unknown> }
+				: NonNullable<TInput[Head]> extends object
+					? { [K in Head]: PathToNested<NonNullable<TInput[Head]>, Rest> }
+					: { [K in Head]: unknown }
+			: { [K in Head]: unknown }
+		: TPath extends keyof TInput
+			? { [K in TPath]: TInput[TPath] }
+			: { [K in TPath]: unknown };
 
 export interface PipelineBuilder<TInput extends object> {
 	/**
@@ -316,10 +339,10 @@ type ProjectExclusionOutput<TInput extends object, TSpec> =
 	{ [K in keyof TInput as K extends keyof TSpec ? TSpec[K] extends 0 | false ? never : TSpec[K] extends 1 | boolean | true ? K : never : K]: TInput[K] }
 	& { [K in keyof TSpec as TSpec[K] extends 0 | 1 | boolean | false | true ? never : K]: InferExprType<TInput, TSpec[K]> };
 
-/** @internal Inclusion-mode $project output: only spec'd fields, typed from TInput (1|true) or unknown (expressions). */
-type ProjectInclusionOutput<TInput extends object, TSpec> = {
-	[K in keyof TSpec as TSpec[K] extends 0 | false ? never : K]: TSpec[K] extends 1 | true ? (K extends keyof TInput ? TInput[K] : unknown) : InferExprType<TInput, TSpec[K]>
-};
+/** @internal Inclusion-mode $project output: top-level fields typed from TInput, dot-notation paths reconstructed as nested objects. */
+type ProjectInclusionOutput<TInput extends object, TSpec> =
+	{ [K in keyof TSpec & string as TSpec[K] extends 0 | false ? never : K extends `${string}.${string}` ? never : K]: TSpec[K] extends 1 | true ? (K extends keyof TInput ? TInput[K] : unknown) : InferExprType<TInput, TSpec[K]> }
+	& DotNotationInclusionMerge<TInput, TSpec>;
 
 /**
  * Inferred output type of a `$project` stage.
@@ -353,6 +376,10 @@ export interface SetWindowFieldsSpec<TInput extends object> {
 export type SortSpec<TInput extends object> = {
 	[K in DotNotation<TInput>]?: -1 | 1 | { $meta: string }
 };
+
+/** @internal Converts a union type to an intersection type. Used to merge nested projection paths. */
+type UnionToIntersection<U> =
+	(U extends any ? (x: U) => void : never) extends (x: infer I) => void ? I : never;
 
 /** Options object form of $unwind */
 export interface UnwindOptions<TInput extends object, TField extends FieldRef<TInput>> {

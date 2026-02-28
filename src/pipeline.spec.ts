@@ -432,6 +432,27 @@ describe('pipeline() builder', () => {
 					// @ts-expect-error 'email' was not included in the projection
 					.sort({ email: 1 });
 			});
+
+			it('should reconstruct nested object for dot-notation inclusion field', () => {
+				type T1 = Assert<Equals<ProjectOutput<User, { 'address.city': 1 }>['address'], Array<{ city: string }>>>;
+			});
+
+			it('should use top-level key not flat dot key in inclusion output', () => {
+				type T1 = Assert<Equals<keyof ProjectOutput<User, { 'address.city': 1 }>, 'address'>>;
+			});
+
+			it('should track dot-notation inclusion output for downstream stages', () => {
+				pipeline<User>()
+					.project({ 'address.city': 1 })
+					.sort({ 'address': 1 });
+			});
+
+			it('should reject non-projected top-level fields after dot-notation inclusion', () => {
+				pipeline<User>()
+					.project({ 'address.city': 1 })
+					// @ts-expect-error 'name' was not included in the projection
+					.sort({ name: 1 });
+			});
 		});
 
 		describe('exclusion mode (no field = 1)', () => {
