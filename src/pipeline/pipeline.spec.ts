@@ -6,14 +6,13 @@ import type { Assert, Equals, Includes } from '../types.js';
 import type {
 	AccumulatorExpr,
 	GroupOutput,
-	GroupSpec,
 	PipelineStage,
 	ProjectOutput,
 	SortSpec,
 	UnwindOutput
 } from './stages.js';
 
-import { pipeline, PipelineBuilder } from './pipeline.js';
+import { Pipeline, pipeline } from './pipeline.js';
 
 interface Address {
 	city: string,
@@ -162,6 +161,11 @@ describe('PipelineStage', () => {
 // ---------------------------------------------------------------------------
 
 describe('pipeline() builder', () => {
+	it('should return a Pipeline instance', () => {
+		const p = pipeline<User>();
+		assert.ok(p instanceof Pipeline);
+	});
+
 	describe('match', () => {
 		it('should accept a valid Filter<User>', () => {
 			pipeline<User>().match({ active: true, name: 'Alice' });
@@ -172,8 +176,9 @@ describe('pipeline() builder', () => {
 			pipeline<User>().match({ nonExistent: true });
 		});
 
-		it('should return PipelineBuilder<User> (schema unchanged)', () => {
-			const builder: PipelineBuilder<User> = pipeline<User>().match({ active: true });
+		it('should preserve the schema (unchanged)', () => {
+			const stages = pipeline<User>().match({ active: true }).build();
+			assert.deepEqual(stages, [{ $match: { active: true } }]);
 		});
 	});
 
@@ -192,7 +197,8 @@ describe('pipeline() builder', () => {
 		});
 
 		it('should preserve the input schema', () => {
-			const builder: PipelineBuilder<User> = pipeline<User>().sort({ name: 1 });
+			const stages = pipeline<User>().sort({ name: 1 }).build();
+			assert.deepEqual(stages, [{ $sort: { name: 1 } }]);
 		});
 	});
 
@@ -202,7 +208,8 @@ describe('pipeline() builder', () => {
 		});
 
 		it('should preserve the input schema', () => {
-			const builder: PipelineBuilder<User> = pipeline<User>().limit(10);
+			const stages = pipeline<User>().limit(10).build();
+			assert.deepEqual(stages, [{ $limit: 10 }]);
 		});
 	});
 
@@ -212,7 +219,8 @@ describe('pipeline() builder', () => {
 		});
 
 		it('should preserve the input schema', () => {
-			const builder: PipelineBuilder<User> = pipeline<User>().skip(5);
+			const stages = pipeline<User>().skip(5).build();
+			assert.deepEqual(stages, [{ $skip: 5 }]);
 		});
 	});
 
@@ -222,7 +230,8 @@ describe('pipeline() builder', () => {
 		});
 
 		it('should preserve the input schema', () => {
-			const builder: PipelineBuilder<User> = pipeline<User>().sample({ size: 10 });
+			const stages = pipeline<User>().sample({ size: 10 }).build();
+			assert.deepEqual(stages, [{ $sample: { size: 10 } }]);
 		});
 	});
 
@@ -280,8 +289,8 @@ describe('pipeline() builder', () => {
 
 	describe('count', () => {
 		it('should produce Record<field, number> output schema', () => {
-			const builder = pipeline<User>().count('total');
-			type T1 = Assert<Equals<typeof builder, PipelineBuilder<Record<'total', number>>>>;
+			const stages = pipeline<User>().count('total').build();
+			assert.deepEqual(stages, [{ $count: 'total' }]);
 		});
 
 		it('should allow sorting on the count field downstream', () => {
@@ -385,13 +394,13 @@ describe('pipeline() builder', () => {
 		});
 
 		it('should add foreign collection as typed array field', () => {
-			const builder = pipeline<User>().lookup<Order, 'orders'>({
+			const stages = pipeline<User>().lookup<Order, 'orders'>({
 				as: 'orders',
 				foreignField: 'userId',
 				from: 'orders',
 				localField: 'email'
-			});
-			type T1 = Assert<Equals<typeof builder, PipelineBuilder<User & Record<'orders', Order[]>>>>;
+			}).build();
+			assert.deepEqual(stages, [{ $lookup: { as: 'orders', foreignField: 'userId', from: 'orders', localField: 'email' } }]);
 		});
 
 		it('should allow sorting on nested lookup fields downstream', () => {
@@ -512,8 +521,8 @@ describe('pipeline() builder', () => {
 		});
 
 		it('should produce { _id, count } output schema', () => {
-			const builder = pipeline<User>().sortByCount('$department');
-			type T1 = Assert<Equals<typeof builder, PipelineBuilder<{ _id: string, count: number }>>>;
+			const stages = pipeline<User>().sortByCount('$department').build();
+			assert.deepEqual(stages, [{ $sortByCount: '$department' }]);
 		});
 
 		it('should allow sorting on count downstream', () => {
@@ -530,10 +539,10 @@ describe('pipeline() builder', () => {
 		});
 
 		it('should infer element type from sub-pipeline output schema', () => {
-			const builder = pipeline<User>().facet(p => ({
+			const stages = pipeline<User>().facet(p => ({
 				byDept: p().group({ _id: '$department', total: { $sum: 1 } })
-			}));
-			type T1 = Assert<Equals<typeof builder, PipelineBuilder<{ byDept: { _id: string, total: number }[] }>>>;
+			})).build();
+			assert.deepEqual(stages, [{ $facet: { byDept: [{ $group: { _id: '$department', total: { $sum: 1 } } }] } }]);
 		});
 	});
 
@@ -543,22 +552,23 @@ describe('pipeline() builder', () => {
 
 	describe('out', () => {
 		it('should accept a collection name string', () => {
-			const stages = pipeline<User>().match({ active: true }).out('archive');
-			assert.deepEqual(stages, [{ $match: { active: true } }, { $out: 'archive' }]);
+			const terminal = pipeline<User>().match({ active: true }).out('archive');
+
+			assert.deepEqual(terminal.build(), [{ $match: { active: true } }, { $out: 'archive' }]);
 		});
 
 		it('should accept a db+coll object', () => {
-			const stages = pipeline<User>().out({ coll: 'archive', db: 'reporting' });
-			assert.deepEqual(stages, [{ $out: { coll: 'archive', db: 'reporting' } }]);
+			const terminal = pipeline<User>().out({ coll: 'archive', db: 'reporting' });
+			assert.deepEqual(terminal.build(), [{ $out: { coll: 'archive', db: 'reporting' } }]);
 		});
 	});
 
 	describe('merge', () => {
 		it('should accept a merge spec', () => {
-			const stages = pipeline<User>()
+			const terminal = pipeline<User>()
 				.match({ active: true })
 				.merge({ into: 'archive', whenNotMatched: 'insert' });
-			assert.deepEqual(stages, [
+			assert.deepEqual(terminal.build(), [
 				{ $match: { active: true } },
 				{ $merge: { into: 'archive', whenNotMatched: 'insert' } }
 			]);
@@ -572,14 +582,14 @@ describe('pipeline() builder', () => {
 	describe('chaining', () => {
 		it('should support multi-step chains with schema tracking', () => {
 			// match (User) → group (GroupOutput) → sort (GroupOutput) → limit → merge
-			const stages = pipeline<User>()
+			const terminal = pipeline<User>()
 				.match({ active: true })
 				.group({ _id: '$department', headcount: { $sum: 1 } })
 				.sort({ headcount: -1 })
 				.limit(5)
 				.merge({ into: 'summary' });
 
-			assert.deepEqual(stages, [
+			assert.deepEqual(terminal.build(), [
 				{ $match: { active: true } },
 				{ $group: { _id: '$department', headcount: { $sum: 1 } } },
 				{ $sort: { headcount: -1 } },
@@ -607,58 +617,60 @@ describe('pipeline() builder', () => {
 	// -------------------------------------------------------------------------
 
 	describe('extensibility', () => {
-		class TestBuilder<TInput extends object> extends PipelineBuilder<TInput> {
-			readonly custom = true;
-
-			protected override create<T extends object>(stages: object[]): TestBuilder<T> {
-				return new TestBuilder<T>(stages);
-			}
-
-			getStages(): object[] {
-				return [...this.stages];
-			}
-		}
-
-		it('should return subclass instance through schema-preserving methods', () => {
-			const builder = new TestBuilder<User>();
-			const result = builder.match({ active: true });
-			assert.equal((result as any).custom, true);
+		it('should return Pipeline instance through schema-preserving methods', () => {
+			const result = pipeline<User>().match({ active: true });
+			assert.ok(result instanceof Pipeline);
 		});
 
-		it('should return subclass instance through schema-transforming methods', () => {
-			const builder = new TestBuilder<User>();
-			const result = builder.group({ _id: '$department', total: { $sum: 1 } });
-			assert.equal((result as any).custom, true);
+		it('should return Pipeline instance through schema-transforming methods', () => {
+			const result = pipeline<User>().group({ _id: '$department', total: { $sum: 1 } });
+			assert.ok(result instanceof Pipeline);
 		});
 
-		it('should return subclass instance through multi-step chains', () => {
-			const builder = new TestBuilder<User>();
-			const result = builder
+		it('should return Pipeline instance through multi-step chains', () => {
+			const result = pipeline<User>()
 				.match({ active: true })
 				.group({ _id: '$department', total: { $sum: 1 } })
 				.sort({ total: -1 })
 				.limit(10);
-			assert.equal((result as any).custom, true);
+			assert.ok(result instanceof Pipeline);
 		});
 
 		it('should use create() for facet sub-pipeline factory', () => {
-			const builder = new TestBuilder<User>();
-			let isSubPipelineTestBuilder = false;
-			builder.facet((p) => {
+			let isSubPipeline = false;
+			pipeline<User>().facet((p) => {
 				const sub = p();
-				isSubPipelineTestBuilder = (sub as any).custom === true;
+				isSubPipeline = sub instanceof Pipeline;
 				return { branch: sub.match({ active: true }) };
 			});
-			assert.equal(isSubPipelineTestBuilder, true);
+			assert.ok(isSubPipeline);
 		});
 
 		it('should still accumulate correct stages', () => {
-			const builder = new TestBuilder<User>()
+			const stages = pipeline<User>()
 				.match({ active: true })
-				.sort({ name: 1 }) as TestBuilder<User>;
-			assert.deepEqual(builder.getStages(), [
+				.sort({ name: 1 })
+				.build();
+			assert.deepEqual(stages, [
 				{ $match: { active: true } },
 				{ $sort: { name: 1 } }
+			]);
+		});
+
+		it('should expose terminal methods on the builder itself', () => {
+			const stages = pipeline<User>().match({ active: true }).build();
+			assert.deepEqual(stages, [
+				{ $match: { active: true } }
+			]);
+		});
+
+		it('should return TTerminal from out() and merge()', () => {
+			const terminal = pipeline<User>()
+				.match({ active: true })
+				.out('archive');
+			assert.deepEqual(terminal.build(), [
+				{ $match: { active: true } },
+				{ $out: 'archive' }
 			]);
 		});
 	});
