@@ -13,7 +13,7 @@ import type {
 	UnwindOutput
 } from './stages.js';
 
-import { pipeline, PipelineBuilder } from './builder.js';
+import { pipeline, PipelineBuilder } from './pipeline.js';
 
 interface Address {
 	city: string,

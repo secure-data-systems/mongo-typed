@@ -1,2 +1,2 @@
-export * from './builder.js';
+export * from './pipeline.js';
 export * from './stages.js';
