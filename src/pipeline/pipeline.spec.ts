@@ -10,10 +10,10 @@ import type {
 	ProjectOutput,
 	SortSpec,
 	UnwindOutput
-} from './pipeline.js';
-import type { Assert, Equals, Includes } from './types.js';
+} from './stages.js';
+import type { Assert, Equals, Includes } from '../types.js';
 
-import { pipeline, PipelineBuilder } from './pipeline.js';
+import { pipeline, PipelineBuilder } from './builder.js';
 
 interface Address {
 	city: string,
