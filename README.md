@@ -92,6 +92,20 @@ const stages = pipeline<User>()
 
 Supported stages: `$addFields`, `$count`, `$facet`, `$group`, `$limit`, `$lookup`, `$match`, `$merge`, `$out`, `$project`, `$replaceRoot`, `$replaceWith`, `$sample`, `$set`, `$setWindowFields`, `$skip`, `$sort`, `$sortByCount`, `$unset`, `$unwind`.
 
+### Update Pipeline
+
+MongoDB allows updates to use an aggregation pipeline instead of traditional operators. The `updatePipeline()` builder restricts the available stages to only the ones valid in updates: `$addFields`, `$set`, `$project`, `$unset`, `$replaceRoot`, `$replaceWith`.
+
+```ts
+import { updatePipeline } from 'mongo-typed';
+
+const stages = updatePipeline<User>()
+  .set({ fullName: { $concat: ['$firstName', ' ', '$lastName'] } })
+  .unset('firstName')
+  .build();
+// Pass to collection.updateMany(filter, stages)
+```
+
 #### Extending the builder
 
 `PipelineBuilder` is a generic base class that can be extended for custom terminal behavior. The second type parameter `TTerminal` controls what terminal methods (like `$merge` and `$out`) return:
