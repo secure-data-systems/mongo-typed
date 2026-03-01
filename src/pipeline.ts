@@ -219,136 +219,6 @@ type PathToNested<TInput extends object, TPath extends string> =
 			? { [K in TPath]: TInput[TPath] }
 			: { [K in TPath]: unknown };
 
-export interface PipelineBuilder<TInput extends object> {
-	/**
-	 * Adds computed fields to each document.
-	 * The output schema is extended with the keys from `spec`, each typed
-	 * via the inferred expression return type.
-	 */
-	addFields<TFields extends AddFieldsSpec<TInput>>(
-		spec: TFields
-	): PipelineBuilder<TInput & AddFieldsOutput<TInput, TFields>>,
-
-	/** Terminates the builder and returns the accumulated stage array. */
-	build(): PipelineStage<any>[],
-
-	/** Counts documents and outputs `{ [field]: number }`. */
-	count<TField extends string>(field: TField): PipelineBuilder<Record<TField, number>>,
-
-	/**
-	 * Runs multiple sub-pipelines on the same input and merges their results.
-	 * Pass a factory callback that receives `p` — call `p()` to get a fresh
-	 * `PipelineBuilder<TInput>` for each sub-pipeline.
-	 * @example
-	 * ```ts
-	 * pipeline<User>().facet(p => ({
-	 *   byDept: p().group({ _id: '$department', count: { $sum: 1 } }),
-	 *   top10:  p().sort({ score: -1 }).limit(10),
-	 * }))
-	 * ```
-	 */
-	facet<TSpec extends Record<string, PipelineBuilder<any>>>(fn: (p: () => PipelineBuilder<TInput>) => TSpec): PipelineBuilder<FacetOutput<TSpec>>,
-
-	/**
-	 * Groups documents by `_id` and computes accumulator fields.
-	 * Output types are fully inferred: numeric accumulators → `number`,
-	 * array accumulators → typed element arrays, scalar accumulators and
-	 * `_id` → inferred expression return type.
-	 */
-	group<TSpec extends GroupSpec<TInput>>(spec: TSpec): PipelineBuilder<GroupOutput<TInput, TSpec>>,
-
-	/** Limits the result to `n` documents. */
-	limit(n: number): PipelineBuilder<TInput>,
-
-	/**
-	 * Joins documents from another collection.
-	 * The output schema is extended with `TAs` typed as `TForeignSchema[]`.
-	 */
-	lookup<TForeignSchema extends object, TAs extends string>(
-		spec: LookupSpec<TInput, TForeignSchema, TAs>
-	): PipelineBuilder<TInput & Record<TAs, TForeignSchema[]>>,
-
-	/** Filters documents using a query filter. */
-	match(filter: Filter<TInput>): PipelineBuilder<TInput>,
-
-	/**
-	 * Terminates the builder by adding a `$merge` stage and returning the stage array.
-	 */
-	merge(spec: MergeSpec): PipelineStage<any>[],
-
-	/**
-	 * Terminates the builder by adding a `$out` stage and returning the stage array.
-	 */
-	out(collection: string | { coll: string, db: string }): PipelineStage<any>[],
-
-	/**
-	 * Reshapes each document.
-	 * - **Inclusion mode** (any field = `1 | true`): only spec'd fields are kept;
-	 *   `1 | true` fields carry their `TInput` type; expression fields are typed
-	 *   via inferred return type; `0 | false` fields and dot-notation keys are handled.
-	 * - **Exclusion mode** (no field = `1 | true`): `TInput` minus excluded fields;
-	 *   expression fields are typed via inferred return type.
-	 */
-	project<TSpec extends ProjectSpec<TInput>>(spec: TSpec): PipelineBuilder<ProjectOutput<TInput, TSpec>>,
-
-	/**
-	 * Replaces each document with a new root expression.
-	 * Specify `TOutput` explicitly to track the output schema downstream.
-	 */
-	replaceRoot<TOutput extends object = Record<string, unknown>>(
-		spec: { newRoot: Expr<TInput> }
-	): PipelineBuilder<TOutput>,
-
-	/**
-	 * Replaces each document with an expression result.
-	 * Specify `TOutput` explicitly to track the output schema downstream.
-	 */
-	replaceWith<TOutput extends object = Record<string, unknown>>(
-		expr: Expr<TInput>
-	): PipelineBuilder<TOutput>,
-
-	/** Returns a random sample of `size` documents. */
-	sample(spec: { size: number }): PipelineBuilder<TInput>,
-
-	/**
-	 * Adds or overwrites fields (alias for `addFields`).
-	 * The output schema is extended with the keys from `spec`, each typed
-	 * via the inferred expression return type.
-	 */
-	set<TFields extends AddFieldsSpec<TInput>>(
-		spec: TFields
-	): PipelineBuilder<TInput & AddFieldsOutput<TInput, TFields>>,
-
-	/**
-	 * Computes window aggregations over sorted/partitioned documents.
-	 * Use explicit stage via `build()` to control output schema.
-	 */
-	setWindowFields(spec: SetWindowFieldsSpec<TInput>): PipelineBuilder<TInput>,
-
-	/** Skips the first `n` documents. */
-	skip(n: number): PipelineBuilder<TInput>,
-
-	/** Sorts documents by the given field paths. */
-	sort(spec: SortSpec<TInput>): PipelineBuilder<TInput>,
-
-	/** Groups documents by an expression and counts occurrences, sorted descending by count. */
-	sortByCount<TExpr extends Expr<TInput>>(expr: TExpr): PipelineBuilder<{ _id: InferExprType<TInput, TExpr>, count: number }>,
-
-	/**
-	 * Removes fields from each document.
-	 * The output schema omits the specified key(s).
-	 */
-	unset<T extends DotNotation<TInput>>(fields: T | T[]): PipelineBuilder<Omit<TInput, T>>,
-
-	/**
-	 * Deconstructs an array field, emitting one document per element.
-	 * The output type unwraps the array field to its element type.
-	 */
-	unwind<TField extends FieldRef<TInput>>(
-		spec: TField | UnwindOptions<TInput, TField>
-	): PipelineBuilder<UnwindOutput<TInput, TField>>
-}
-
 export type PipelineStage<TInput extends object> =
 	| { $addFields: AddFieldsSpec<TInput> }
 	| { $bucket: BucketSpec<TInput> }
@@ -473,35 +343,36 @@ export type WindowAccumulatorExpr<TInput extends object> = AccumulatorExpr<TInpu
  *   .match({ active: true })
  *   .group({ _id: '$department', headcount: { $sum: 1 } })
  *   .sort({ headcount: -1 })
- *   .build();
+ *   .merge({ into: 'summary' });
  * ```
  */
 export function pipeline<TInput extends object>(): PipelineBuilder<TInput> {
-	return new PipelineBuilderImpl<TInput>();
+	return new PipelineBuilder<TInput>();
 }
 
-class PipelineBuilderImpl<TInput extends object> implements PipelineBuilder<TInput> {
-	private readonly _stages: object[];
+export class PipelineBuilder<TInput extends object> {
+	protected readonly stages: object[];
 
 	constructor(stages: object[] = []) {
-		this._stages = stages;
+		this.stages = stages;
 	}
 
 	addFields<TFields extends AddFieldsSpec<TInput>>(spec: TFields): PipelineBuilder<TInput & AddFieldsOutput<TInput, TFields>> {
 		return this.push({ $addFields: spec });
 	}
 
-	build(): PipelineStage<any>[] {
-		return [...this._stages] as PipelineStage<any>[];
-	}
-
 	count<TField extends string>(field: TField): PipelineBuilder<Record<TField, number>> {
 		return this.push({ $count: field });
 	}
 
+	/** Override in subclasses to control how new builder instances are created during chaining. */
+	protected create<T extends object>(stages: object[]): PipelineBuilder<T> {
+		return new PipelineBuilder<T>(stages);
+	}
+
 	facet<TSpec extends Record<string, PipelineBuilder<any>>>(fn: (p: () => PipelineBuilder<TInput>) => TSpec): PipelineBuilder<FacetOutput<TSpec>> {
-		const spec = fn(() => new PipelineBuilderImpl<TInput>([]));
-		const built = Object.fromEntries(Object.entries(spec).map(([k, b]) => [k, b.build()]));
+		const spec = fn(() => this.create<TInput>([]));
+		const built = Object.fromEntries(Object.entries(spec).map(([k, b]) => [k, [...b.stages]]));
 		return this.push({ $facet: built }) as PipelineBuilder<FacetOutput<TSpec>>;
 	}
 
@@ -524,19 +395,19 @@ class PipelineBuilderImpl<TInput extends object> implements PipelineBuilder<TInp
 	}
 
 	merge(spec: MergeSpec): PipelineStage<any>[] {
-		return [...this._stages, { $merge: spec }] as PipelineStage<any>[];
+		return [...this.stages, { $merge: spec }] as PipelineStage<any>[];
 	}
 
 	out(collection: string | { coll: string, db: string }): PipelineStage<any>[] {
-		return [...this._stages, { $out: collection }] as PipelineStage<any>[];
+		return [...this.stages, { $out: collection }] as PipelineStage<any>[];
 	}
 
 	project<TSpec extends ProjectSpec<TInput>>(spec: TSpec): PipelineBuilder<ProjectOutput<TInput, TSpec>> {
 		return this.push({ $project: spec });
 	}
 
-	private push(stage: object): PipelineBuilderImpl<any> {
-		return new PipelineBuilderImpl<any>([...this._stages, stage]);
+	private push(stage: object): PipelineBuilder<any> {
+		return this.create([...this.stages, stage]);
 	}
 
 	replaceRoot<TOutput extends object = Record<string, unknown>>(spec: { newRoot: Expr<TInput> }): PipelineBuilder<TOutput> {
