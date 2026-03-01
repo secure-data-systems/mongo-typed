@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import type { Assert, Equals, Includes } from '../types.js';
 import type {
 	AccumulatorExpr,
 	GroupOutput,
@@ -11,7 +12,6 @@ import type {
 	SortSpec,
 	UnwindOutput
 } from './stages.js';
-import type { Assert, Equals, Includes } from '../types.js';
 
 import { pipeline, PipelineBuilder } from './builder.js';
 
