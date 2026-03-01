@@ -1,19 +1,20 @@
 # mongo-typed
 
-TypeScript utility types for building strongly-typed MongoDB filters, and updates — without adding dependencies.
+TypeScript utility types for building strongly-typed MongoDB filters, updates, and aggregation pipelines — without adding dependencies.
 
 ## Overview
 
-`mongo-typed` provides type-safe MongoDB-style query and update utilities in TypeScript. It is designed to assist with building fully-typed data repository layers or services that interact with MongoDB-like syntax, without relying on external libraries or runtime packages.
+`mongo-typed` provides type-safe MongoDB-style query, update, and aggregation utilities in TypeScript. It is designed to assist with building fully-typed data repository layers or services that interact with MongoDB-like syntax, without relying on external libraries or runtime packages.
 
-Whether you're working with an actual MongoDB database or implementing similar patterns in your application logic, `mongo-typed` gives you strong typing for common Mongo operations like filters, and updates.
+Whether you're working with an actual MongoDB database or implementing similar patterns in your application logic, `mongo-typed` gives you strong typing for common Mongo operations like filters, updates, and aggregation pipelines.
 
 ## Features
 
-- 🧠 Fully typed **filter** support (including `$and`, `$or`, `$in`, `$elemMatch`, etc.)
-- ✍️ Strongly typed **update** operations (e.g., `$set`, `$inc`, `$unset`, etc.)
-- 💡 No dependencies — pure TypeScript
-- 🔐 Helps catch invalid Mongo-like queries at compile time
+- Fully typed **filter** support (including `$and`, `$or`, `$in`, `$elemMatch`, etc.)
+- Strongly typed **update** operations (e.g., `$set`, `$inc`, `$unset`, etc.)
+- Fluent **aggregation pipeline** builder with schema tracking across stages
+- No dependencies — pure TypeScript
+- Helps catch invalid Mongo-like queries at compile time
 
 ## Installation
 
@@ -27,7 +28,7 @@ yarn add mongo-typed
 
 ## Usage
 
-### Basic Filter Type
+### Filter
 
 ```ts
 import { Filter } from 'mongo-typed';
@@ -49,7 +50,7 @@ const query: Filter<User> = {
 };
 ```
 
-### Basic Update Type
+### Update
 
 ```ts
 import { Update } from 'mongo-typed';
@@ -67,30 +68,63 @@ const update: Update<User> = {
 };
 ```
 
-### Aggregation Types (Coming Soon)
+### Aggregation Pipeline
 
-Aggregation support is in active development and aims to type:
-- `$match`
-- `$group`
-- `$project`
-- `$sort`, `$limit`, `$lookup`, and more
+The `pipeline()` function returns a fluent builder that tracks the document schema as it flows through each stage. The output type updates automatically — `$group` reshapes the schema, `$unwind` flattens arrays, `$project` picks or excludes fields, and so on.
 
-## Why Use `mongo-typed`?
+```ts
+import { pipeline } from 'mongo-typed';
 
-TypeScript developers working with MongoDB often find themselves wishing for deeper type safety on filters and updates — especially in larger projects or those with repository abstraction layers.
+type User = {
+  _id: string;
+  department: string;
+  salary: number;
+  active: boolean;
+};
 
-`mongo-typed` solves this by bringing compile-time validation of Mongo-style operations, helping prevent costly runtime errors due to typos or invalid operations.
+const stages = pipeline<User>()
+  .match({ active: true })
+  .group({ _id: '$department', headcount: { $sum: 1 } })
+  .sort({ headcount: -1 })
+  .build();
+// stages: [{ $match: ... }, { $group: ... }, { $sort: ... }]
+```
+
+Supported stages: `$addFields`, `$count`, `$facet`, `$group`, `$limit`, `$lookup`, `$match`, `$merge`, `$out`, `$project`, `$replaceRoot`, `$replaceWith`, `$sample`, `$set`, `$setWindowFields`, `$skip`, `$sort`, `$sortByCount`, `$unset`, `$unwind`.
+
+#### Extending the builder
+
+`PipelineBuilder` is a generic base class that can be extended for custom terminal behavior. The second type parameter `TTerminal` controls what terminal methods (like `$merge` and `$out`) return:
+
+```ts
+import { PipelineBuilder } from 'mongo-typed';
+
+interface MyTerminal {
+  execute: () => Promise<object[]>;
+}
+
+class MyPipeline<T extends object> extends PipelineBuilder<T, MyTerminal> implements MyTerminal {
+  async execute() {
+    // run the pipeline against your database
+    return this.stages;
+  }
+
+  protected override create<U extends object>(stages: object[]) {
+    return new MyPipeline<U>(stages);
+  }
+}
+```
 
 ## Status
 
-- ✅ Filter types – stable
-- ✅ Update types – in progress
-- 🧪 Aggregation types – coming soon
-- 🔄 Actively maintained
+- Filter types — stable
+- Update types — stable
+- Aggregation pipeline — stable
+- Actively maintained
 
 ## Contributing
 
-Contributions and suggestions are welcome! Please open issues or PRs to help improve support for advanced MongoDB operators or aggregations.
+Contributions and suggestions are welcome! Please open issues or PRs.
 
 ## License
 
