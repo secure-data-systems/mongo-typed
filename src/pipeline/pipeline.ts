@@ -13,14 +13,12 @@ import {
 	SetWindowFieldsSpec,
 	SortSpec,
 	UnwindOptions,
-	UnwindOutput
+	UnwindOutput,
+	ValidateFieldRefs
 } from './stages.js';
 
-/** Enriches the builder return type with TTerminal methods when TTerminal is non-void. */
-type Chain<TInput extends object, TTerminal> =
-	TTerminal extends void
-		? PipelineBuilder<TInput, TTerminal>
-		: PipelineBuilder<TInput, TTerminal> & TTerminal;
+/** Enriches the builder return type with TTerminal methods (non-conditional intersection). */
+type Chain<TInput extends object, TTerminal> = PipelineBuilder<TInput, TTerminal> & TTerminal;
 
 /** Inferred output type of a $facet stage — each key maps to an array of the sub-pipeline's output type. */
 export type FacetOutput<TSpec> = {
@@ -31,9 +29,11 @@ export type FacetOutput<TSpec> = {
 // PipelineBuilder — fluent builder with schema tracking across stages
 // ---------------------------------------------------------------------------
 
-/** Terminal interface for {@link Pipeline} — provides `build()` to extract the raw stage array. */
+/** Terminal interface for {@link Pipeline} — provides `build()`, `merge()`, and `out()`. */
 export interface PipelineTerminal {
-	build: () => object[]
+	build: () => object[],
+	merge: (spec: MergeSpec) => PipelineTerminal,
+	out: (collection: string | { coll: string, db: string }) => PipelineTerminal
 }
 
 /**
@@ -53,14 +53,14 @@ export function pipeline<TInput extends object>(): Pipeline<TInput> {
 	return new Pipeline<TInput>();
 }
 
-export class PipelineBuilder<TInput extends object, TTerminal = void> {
+export class PipelineBuilder<TInput extends object, TTerminal = object> {
 	protected readonly stages: object[];
 
 	constructor(stages: object[] = []) {
 		this.stages = stages;
 	}
 
-	addFields<TFields extends AddFieldsSpec<TInput>>(spec: TFields): Chain<TInput & AddFieldsOutput<TInput, TFields>, TTerminal> {
+	addFields<TFields extends AddFieldsSpec<TInput>>(spec: ValidateFieldRefs<TInput, TFields>): Chain<TInput & AddFieldsOutput<TInput, TFields>, TTerminal> {
 		return this.push({ $addFields: spec });
 	}
 
@@ -97,15 +97,7 @@ export class PipelineBuilder<TInput extends object, TTerminal = void> {
 		return this.push({ $match: filter });
 	}
 
-	merge(spec: MergeSpec): TTerminal {
-		return this.create([...this.stages, { $merge: spec }]) as unknown as TTerminal;
-	}
-
-	out(collection: string | { coll: string, db: string }): TTerminal {
-		return this.create([...this.stages, { $out: collection }]) as unknown as TTerminal;
-	}
-
-	project<TSpec extends ProjectSpec<TInput>>(spec: TSpec): Chain<ProjectOutput<TInput, TSpec>, TTerminal> {
+	project<TSpec extends ProjectSpec<TInput>>(spec: ValidateFieldRefs<TInput, TSpec>): Chain<ProjectOutput<TInput, TSpec>, TTerminal> {
 		return this.push({ $project: spec });
 	}
 
@@ -125,7 +117,7 @@ export class PipelineBuilder<TInput extends object, TTerminal = void> {
 		return this.push({ $sample: spec });
 	}
 
-	set<TFields extends AddFieldsSpec<TInput>>(spec: TFields): Chain<TInput & AddFieldsOutput<TInput, TFields>, TTerminal> {
+	set<TFields extends AddFieldsSpec<TInput>>(spec: ValidateFieldRefs<TInput, TFields>): Chain<TInput & AddFieldsOutput<TInput, TFields>, TTerminal> {
 		return this.push({ $set: spec });
 	}
 
@@ -156,7 +148,7 @@ export class PipelineBuilder<TInput extends object, TTerminal = void> {
 	}
 }
 
-/** Concrete pipeline builder with `build()` to extract the raw stage array. */
+/** Concrete pipeline builder — returns `Pipeline` instances during chaining. */
 export class Pipeline<TInput extends object> extends PipelineBuilder<TInput, PipelineTerminal> implements PipelineTerminal {
 	build(): object[] {
 		return [...this.stages];
@@ -164,5 +156,13 @@ export class Pipeline<TInput extends object> extends PipelineBuilder<TInput, Pip
 
 	protected override create<T extends object>(stages: object[]): Pipeline<T> {
 		return new Pipeline<T>(stages);
+	}
+
+	merge(spec: MergeSpec): PipelineTerminal {
+		return this.create([...this.stages, { $merge: spec }]);
+	}
+
+	out(collection: string | { coll: string, db: string }): PipelineTerminal {
+		return this.create([...this.stages, { $out: collection }]);
 	}
 }

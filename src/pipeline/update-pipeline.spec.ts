@@ -158,7 +158,7 @@ describe('UpdatePipeline', () => {
 		});
 
 		it('should return a copy of stages', () => {
-			const p = updatePipeline<User>().set({ x: 1 });
+			const p = updatePipeline<User>().set({ x: { $literal: 1 } });
 			const a = p.build();
 			const b = p.build();
 			assert.notEqual(a, b);
@@ -197,8 +197,69 @@ describe('UpdatePipeline', () => {
 		});
 
 		it('should return UpdatePipeline instances after chaining', () => {
-			const p = updatePipeline<User>().set({ x: 1 });
+			const p = updatePipeline<User>().set({ x: { $literal: 1 } });
 			assert.ok(p instanceof UpdatePipeline);
+		});
+	});
+
+	// -------------------------------------------------------------------------
+	// ValidateFieldRefs
+	// -------------------------------------------------------------------------
+
+	describe('ValidateFieldRefs', () => {
+		it('should accept valid field refs in addFields', () => {
+			updatePipeline<User>()
+				.addFields({ copy: '$email' })
+				.build();
+		});
+
+		it('should reject invalid field refs in addFields', () => {
+			updatePipeline<User>()
+				.addFields({
+					// @ts-expect-error — $nonExistent is not a valid field ref
+					bad: '$nonExistent',
+					good: '$name'
+				});
+		});
+
+		it('should reject invalid field refs in set', () => {
+			updatePipeline<User>()
+				.set({
+					// @ts-expect-error — $department.typo is not a valid field ref
+					bad: '$department.typo',
+					good: '$email'
+				});
+		});
+
+		it('should reject invalid field refs in project', () => {
+			updatePipeline<User>()
+				.project({
+					// @ts-expect-error — $nonExistent is not a valid field ref
+					bad: '$nonExistent',
+					good: '$name'
+				});
+		});
+
+		it('should accept valid dot-notation field refs in set', () => {
+			updatePipeline<User>()
+				.set({ copy: '$tags' })
+				.build();
+		});
+	});
+
+	// -------------------------------------------------------------------------
+	// Number literal projection
+	// -------------------------------------------------------------------------
+
+	describe('number literal projection', () => {
+		it('should accept number literals in project spec', () => {
+			updatePipeline<User>()
+				.project({ num: 123, score: 1 })
+				.build();
+		});
+
+		it('should infer number type for projected number literals', () => {
+			type T1 = Assert<Equals<ProjectOutput<User, { num: 123 }>['num'], number>>;
 		});
 	});
 });

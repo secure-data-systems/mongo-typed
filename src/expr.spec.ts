@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { describe, it } from 'node:test';
 
-import type { ArrayExpr, BooleanExpr, ConditionalExpr, DateExpr, DateTimezoneExpr, FieldRef, NumericExpr, ObjectExpr, StringExpr, TypeExpr, VariableExpr } from './expr.js';
-import type { Assert, Includes, Not } from './types.js';
+import type { ArrayExpr, BooleanExpr, ConditionalExpr, DateExpr, DateTimezoneExpr, FieldRef, InferExprType, NumericExpr, ObjectExpr, StringExpr, TypedFieldRef, TypeExpr, VariableExpr } from './expr.js';
+import type { Assert, Equals, Includes, Not } from './types.js';
 
 type TestRef = FieldRef<User>;
 
@@ -426,5 +426,82 @@ describe('TypeExpr additions', () => {
 		it('should accept any expression', () => {
 			type T1 = Assert<Includes<TypeExpr<User>, { $toObjectId: '$name' }>>;
 		});
+	});
+});
+
+describe('InferExprType', () => {
+	it('should resolve a top-level field ref to its type', () => {
+		type T1 = Assert<Equals<InferExprType<User, '$name'>, string>>;
+	});
+
+	it('should resolve a dot-notation field ref to its type', () => {
+		type T1 = Assert<Equals<InferExprType<User, '$address.city'>, string>>;
+	});
+
+	it('should resolve a numeric dot-notation field ref', () => {
+		type T1 = Assert<Equals<InferExprType<User, '$address.zip'>, number>>;
+	});
+
+	it('should resolve a Date field ref', () => {
+		type T1 = Assert<Equals<InferExprType<User, '$createdAt'>, Date>>;
+	});
+
+	it('should resolve an unknown path to unknown', () => {
+		type T1 = Assert<Equals<InferExprType<User, '$nonExistent'>, unknown>>;
+	});
+
+	it('should resolve a raw number literal to number', () => {
+		type T1 = Assert<Equals<InferExprType<User, 123>, number>>;
+	});
+
+	it('should resolve a numeric expression to number', () => {
+		type T1 = Assert<Equals<InferExprType<User, { $multiply: ['$address.zip', 2] }>, number>>;
+	});
+
+	it('should resolve a string expression to string', () => {
+		type T1 = Assert<Equals<InferExprType<User, { $toUpper: '$name' }>, string>>;
+	});
+
+	it('should resolve a $literal to its wrapped type', () => {
+		type T1 = Assert<Equals<InferExprType<User, { $literal: 42 }>, 42>>;
+		type T2 = Assert<Equals<InferExprType<User, { $literal: 'hello' }>, 'hello'>>;
+	});
+});
+
+// ---------------------------------------------------------------------------
+// TypedFieldRef
+// ---------------------------------------------------------------------------
+
+describe('TypedFieldRef', () => {
+	interface TypedRefDoc {
+		age: number,
+		createdAt: Date,
+		name: string,
+		score: number
+	}
+
+	it('should allow numeric field paths for TypedFieldRef<T, number>', () => {
+		type T1 = Assert<Includes<TypedFieldRef<TypedRefDoc, number>, '$age'>>;
+		type T2 = Assert<Includes<TypedFieldRef<TypedRefDoc, number>, '$score'>>;
+	});
+
+	it('should not allow string field paths for TypedFieldRef<T, number>', () => {
+		type T1 = Assert<Not<Includes<TypedFieldRef<TypedRefDoc, number>, '$name'>>>;
+	});
+
+	it('should allow string field paths for TypedFieldRef<T, string>', () => {
+		type T1 = Assert<Includes<TypedFieldRef<TypedRefDoc, string>, '$name'>>;
+	});
+
+	it('should not allow numeric field paths for TypedFieldRef<T, string>', () => {
+		type T1 = Assert<Not<Includes<TypedFieldRef<TypedRefDoc, string>, '$age'>>>;
+	});
+
+	it('should allow Date field paths for TypedFieldRef<T, Date>', () => {
+		type T1 = Assert<Includes<TypedFieldRef<TypedRefDoc, Date>, '$createdAt'>>;
+	});
+
+	it('should not allow string field paths for TypedFieldRef<T, Date>', () => {
+		type T1 = Assert<Not<Includes<TypedFieldRef<TypedRefDoc, Date>, '$name'>>>;
 	});
 });

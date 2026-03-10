@@ -1,5 +1,5 @@
 import { BsonType, BsonTypeNumeric } from './bson-types.js';
-import { DotNotation } from './dot-notation.js';
+import { DotNotation, DotPathValue } from './dot-notation.js';
 
 export type ArrayExpr<TInput extends object> =
 	| Array<unknown>
@@ -103,20 +103,25 @@ export type FieldRef<T extends object> = `$${FieldPaths<T>}`;
 export type InferExprType<TInput extends object, TExpr> =
 	TExpr extends { $literal: infer V } ? V
 		: TExpr extends `$${infer K}` ? InferFieldRef<TInput, K>
-			: TExpr extends NumericExpr<TInput> ? number
-				: TExpr extends StringExpr<TInput> ? string
-					: TExpr extends BooleanExpr<TInput> ? boolean
-						: TExpr extends DateExpr<TInput> ? Date
-							: TExpr extends ArrayExpr<TInput> ? unknown[]
-								: unknown;
+			: TExpr extends number ? number
+				: TExpr extends NumericExpr<TInput> ? number
+					: TExpr extends StringExpr<TInput> ? string
+						: TExpr extends BooleanExpr<TInput> ? boolean
+							: TExpr extends DateExpr<TInput> ? Date
+								: TExpr extends ArrayExpr<TInput> ? unknown[]
+									: unknown;
 
-/** @internal Resolves a `$field` reference string to its TInput field type. */
+/** @internal Resolves a `$field` reference string to its TInput field type, including dot-notation paths. */
 type InferFieldRef<TInput extends object, TKey extends string> =
-	TKey extends keyof TInput ? NonNullable<TInput[TKey]> : unknown;
+	TKey extends keyof TInput
+		? NonNullable<TInput[TKey]>
+		: DotPathValue<TInput, TKey> extends infer V
+			? [V] extends [never] ? unknown : NonNullable<V>
+			: unknown;
 
 export type NumericExpr<TInput extends object> =
-	| FieldRef<TInput>
 	| number
+	| TypedFieldRef<TInput, number>
 	| { $abs: NumericExpr<TInput> }
 	| { $acos: NumericExpr<TInput> }
 	| { $acosh: NumericExpr<TInput> }
@@ -186,7 +191,7 @@ export type ObjectExpr<TInput extends object> =
 
 export type StringExpr<TInput extends object> =
 	| FieldRef<TInput>
-	| string
+	| (string & {})
 	| { $concat: StringExpr<TInput>[] }
 	| { $dateToString: { date: DateExpr<TInput>, format?: StringExpr<TInput>, onNull?: Expr<TInput>, timezone?: StringExpr<TInput> } }
 	| { $literal: string }
@@ -201,6 +206,13 @@ export type StringExpr<TInput extends object> =
 	| { $toString: Expr<TInput> }
 	| { $toUpper: StringExpr<TInput> }
 	| { $trim: { chars?: StringExpr<TInput>, input: StringExpr<TInput> } };
+
+/** Field ref filtered to paths whose value extends TValue. */
+export type TypedFieldRef<TInput extends object, TValue> = `$${TypedPaths<TInput, TValue>}`;
+
+type TypedPaths<TInput extends object, TValue> = {
+	[K in FieldPaths<TInput>]: NonNullable<DotPathValue<TInput, K>> extends TValue ? K : never
+}[FieldPaths<TInput>];
 
 export type TypeExpr<TInput extends object> =
 	| { $toObjectId: Expr<TInput> }

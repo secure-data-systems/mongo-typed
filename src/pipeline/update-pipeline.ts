@@ -4,16 +4,14 @@ import {
 	AddFieldsOutput,
 	AddFieldsSpec,
 	ProjectOutput,
-	ProjectSpec
+	ProjectSpec,
+	ValidateFieldRefs
 } from './stages.js';
 
-/** Enriches the builder return type with TTerminal methods when TTerminal is non-void. */
-type Chain<TInput extends object, TTerminal> =
-	TTerminal extends void
-		? UpdatePipelineBuilder<TInput, TTerminal>
-		: UpdatePipelineBuilder<TInput, TTerminal> & TTerminal;
+/** Enriches the builder return type with TTerminal methods (non-conditional intersection). */
+type Chain<TInput extends object, TTerminal> = UpdatePipelineBuilder<TInput, TTerminal> & TTerminal;
 
-/** Terminal interface for {@link UpdatePipeline} — provides `build()` to extract the raw stage array. */
+/** Terminal interface for {@link UpdatePipeline} — provides `build()`. */
 export interface UpdatePipelineTerminal {
 	build: () => object[]
 }
@@ -35,14 +33,14 @@ export function updatePipeline<TInput extends object>(): UpdatePipeline<TInput> 
 	return new UpdatePipeline<TInput>();
 }
 
-export class UpdatePipelineBuilder<TInput extends object, TTerminal = void> {
+export class UpdatePipelineBuilder<TInput extends object, TTerminal = object> {
 	protected readonly stages: object[];
 
 	constructor(stages: object[] = []) {
 		this.stages = stages;
 	}
 
-	addFields<TFields extends AddFieldsSpec<TInput>>(spec: TFields): Chain<TInput & AddFieldsOutput<TInput, TFields>, TTerminal> {
+	addFields<TFields extends AddFieldsSpec<TInput>>(spec: ValidateFieldRefs<TInput, TFields>): Chain<TInput & AddFieldsOutput<TInput, TFields>, TTerminal> {
 		return this.push({ $addFields: spec });
 	}
 
@@ -51,7 +49,7 @@ export class UpdatePipelineBuilder<TInput extends object, TTerminal = void> {
 		return new UpdatePipelineBuilder<T, TTerminal>(stages);
 	}
 
-	project<TSpec extends ProjectSpec<TInput>>(spec: TSpec): Chain<ProjectOutput<TInput, TSpec>, TTerminal> {
+	project<TSpec extends ProjectSpec<TInput>>(spec: ValidateFieldRefs<TInput, TSpec>): Chain<ProjectOutput<TInput, TSpec>, TTerminal> {
 		return this.push({ $project: spec });
 	}
 
@@ -67,7 +65,7 @@ export class UpdatePipelineBuilder<TInput extends object, TTerminal = void> {
 		return this.push({ $replaceWith: expr });
 	}
 
-	set<TFields extends AddFieldsSpec<TInput>>(spec: TFields): Chain<TInput & AddFieldsOutput<TInput, TFields>, TTerminal> {
+	set<TFields extends AddFieldsSpec<TInput>>(spec: ValidateFieldRefs<TInput, TFields>): Chain<TInput & AddFieldsOutput<TInput, TFields>, TTerminal> {
 		return this.push({ $set: spec });
 	}
 
@@ -76,7 +74,7 @@ export class UpdatePipelineBuilder<TInput extends object, TTerminal = void> {
 	}
 }
 
-/** Concrete update pipeline builder with `build()` to extract the raw stage array. */
+/** Concrete update pipeline builder — returns `UpdatePipeline` instances during chaining. */
 export class UpdatePipeline<TInput extends object> extends UpdatePipelineBuilder<TInput, UpdatePipelineTerminal> implements UpdatePipelineTerminal {
 	build(): object[] {
 		return [...this.stages];

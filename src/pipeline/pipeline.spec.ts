@@ -9,7 +9,8 @@ import type {
 	PipelineStage,
 	ProjectOutput,
 	SortSpec,
-	UnwindOutput
+	UnwindOutput,
+	ValidateFieldRefs
 } from './stages.js';
 
 import { Pipeline, pipeline } from './pipeline.js';
@@ -485,8 +486,8 @@ describe('pipeline() builder', () => {
 				type T1 = Assert<Equals<ProjectOutput<User, { score: { $multiply: ['$score', 2] } }>['score'], number>>;
 			});
 
-			it('should retain all other fields when a computed field overrides one', () => {
-				type T1 = Assert<Equals<ProjectOutput<User, { score: { $multiply: ['$score', 2] } }>['name'], string>>;
+			it('should exclude non-projected fields in inclusion mode with expressions', () => {
+				type T1 = Assert<Equals<keyof ProjectOutput<User, { score: { $multiply: ['$score', 2] } }>, 'score'>>;
 			});
 		});
 	});
@@ -673,5 +674,116 @@ describe('pipeline() builder', () => {
 				{ $out: 'archive' }
 			]);
 		});
+	});
+});
+
+// ---------------------------------------------------------------------------
+// ValidateFieldRefs
+// ---------------------------------------------------------------------------
+
+describe('ValidateFieldRefs', () => {
+	it('should pass through valid top-level field refs unchanged', () => {
+		type Result = ValidateFieldRefs<User, { x: '$email' }>;
+		type T1 = Assert<Equals<Result['x'], '$email'>>;
+	});
+
+	it('should pass through valid dot-notation field refs unchanged', () => {
+		type Result = ValidateFieldRefs<User, { x: '$address.city' }>;
+		type T1 = Assert<Equals<Result['x'], '$address.city'>>;
+	});
+
+	it('should map invalid field refs to never', () => {
+		type Result = ValidateFieldRefs<User, { x: '$nonExistent' }>;
+		type T1 = Assert<Equals<Result['x'], never>>;
+	});
+
+	it('should map invalid dot-notation refs to never', () => {
+		type Result = ValidateFieldRefs<User, { x: '$address.cityy' }>;
+		type T1 = Assert<Equals<Result['x'], never>>;
+	});
+
+	it('should pass through non-$ string values unchanged', () => {
+		type Result = ValidateFieldRefs<User, { x: 'hello' }>;
+		type T1 = Assert<Equals<Result['x'], 'hello'>>;
+	});
+
+	it('should pass through object expressions unchanged', () => {
+		type Result = ValidateFieldRefs<User, { x: { $strLenCP: '$name' } }>;
+		type T1 = Assert<Equals<Result['x'], { $strLenCP: '$name' }>>;
+	});
+
+	it('should pass through numeric values unchanged', () => {
+		type Result = ValidateFieldRefs<User, { x: 1 }>;
+		type T1 = Assert<Equals<Result['x'], 1>>;
+	});
+
+	it('should validate multiple keys independently', () => {
+		type Result = ValidateFieldRefs<User, { a: '$email', b: '$nonExistent', c: 'literal' }>;
+		type T1 = Assert<Equals<Result['a'], '$email'>>;
+		type T2 = Assert<Equals<Result['b'], never>>;
+		type T3 = Assert<Equals<Result['c'], 'literal'>>;
+	});
+
+	it('should reject invalid field refs in addFields at compile time', () => {
+		pipeline<User>()
+			.addFields({
+				// @ts-expect-error — $nonExistent is not a valid field ref
+				bad: '$nonExistent',
+				good: '$email'
+			});
+	});
+
+	it('should reject invalid field refs in set at compile time', () => {
+		pipeline<User>()
+			.set({
+				// @ts-expect-error — $address.cityy is not a valid field ref (typo)
+				bad: '$address.cityy',
+				good: '$name'
+			});
+	});
+
+	it('should reject invalid field refs in project at compile time', () => {
+		pipeline<User>()
+			.project({
+				// @ts-expect-error — $address.cityy is not a valid field ref (typo)
+				bad: '$address.cityy',
+				good: '$email'
+			});
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Number literal projection
+// ---------------------------------------------------------------------------
+
+describe('number literal projection', () => {
+	it('should accept number literals in project spec', () => {
+		pipeline<User>()
+			.project({ num: 123, score: 1 })
+			.build();
+	});
+
+	it('should infer number type for projected number literals', () => {
+		type T1 = Assert<Equals<ProjectOutput<User, { num: 123 }>['num'], number>>;
+	});
+
+	it('should still treat 1 as inclusion (preserving TInput type)', () => {
+		type T1 = Assert<Equals<ProjectOutput<User, { name: 1 }>['name'], string>>;
+	});
+
+	it('should still treat 0 as exclusion', () => {
+		type T1 = Assert<Equals<keyof ProjectOutput<User, { _id: 0, name: 1 }>, 'name'>>;
+	});
+
+	it('should infer number for numeric expression alongside number literal', () => {
+		type Result = ProjectOutput<User, { doubled: { $multiply: ['$score', 2] }, num: 123 }>;
+		type T1 = Assert<Equals<Result['doubled'], number>>;
+		type T2 = Assert<Equals<Result['num'], number>>;
+	});
+
+	it('should allow downstream access to number-literal projected fields', () => {
+		pipeline<User>()
+			.project({ name: 1, num: 123 })
+			.sort({ num: 1 });
 	});
 });
