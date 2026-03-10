@@ -35,7 +35,7 @@ export type AddFieldsOutput<TInput extends object, TFields extends AddFieldsSpec
 };
 
 /** Fields to add or overwrite via $addFields / $set */
-export type AddFieldsSpec<TInput extends object> = Record<string, Expr<TInput>>;
+export type AddFieldsSpec<TInput extends object> = Record<string, (Expr<TInput> & object) | FieldRef<TInput> | (string & {})>;
 
 // ---------------------------------------------------------------------------
 // Stage-specific spec types
@@ -172,9 +172,9 @@ export type GroupSpec<TInput extends object> = {
 	[field: string]: AccumulatorExpr<TInput> | Expr<TInput> | null
 };
 
-/** True if TSpec has any field with value `1 | true` — signals $project inclusion mode. */
+/** True if TSpec has any non-_id field whose value is not `0 | false` — signals $project inclusion mode. */
 type HasInclusion<TSpec> =
-	[{ [K in keyof TSpec]: TSpec[K] extends 1 | true ? true : never }[keyof TSpec]] extends [never] ? false : true;
+	[{ [K in Exclude<keyof TSpec, '_id'>]: TSpec[K] extends 0 | false | undefined ? never : true }[Exclude<keyof TSpec, '_id'>]] extends [never] ? false : true;
 
 /** Spec for $lookup — equality join or pipeline join */
 export type LookupSpec<TInput extends object, TForeignSchema extends object, TAs extends string> =
@@ -247,12 +247,12 @@ export type PipelineStage<TInput extends object> =
 
 /** @internal Exclusion-mode $project output: TInput minus excluded fields; expression fields are typed via InferExprType. */
 type ProjectExclusionOutput<TInput extends object, TSpec> =
-	{ [K in keyof TInput as K extends keyof TSpec ? TSpec[K] extends 0 | false ? never : TSpec[K] extends 1 | boolean | true ? K : never : K]: TInput[K] }
-	& { [K in keyof TSpec as TSpec[K] extends 0 | 1 | boolean | false | true ? never : K]: InferExprType<TInput, TSpec[K]> };
+	{ [K in keyof TInput as K extends keyof TSpec ? TSpec[K] extends 0 | false ? never : TSpec[K] extends 0 | 1 | boolean ? K : never : K]: TInput[K] }
+	& { [K in keyof TSpec as TSpec[K] extends 0 | 1 | boolean ? never : K]: InferExprType<TInput, TSpec[K]> };
 
 /** @internal Inclusion-mode $project output: top-level fields typed from TInput, dot-notation paths reconstructed as nested objects. */
 type ProjectInclusionOutput<TInput extends object, TSpec> =
-	{ [K in keyof TSpec & string as TSpec[K] extends 0 | false ? never : K extends `${string}.${string}` ? never : K]: TSpec[K] extends 1 | true ? (K extends keyof TInput ? TInput[K] : unknown) : InferExprType<TInput, TSpec[K]> }
+	{ [K in keyof TSpec & string as TSpec[K] extends 0 | false ? never : K extends `${string}.${string}` ? never : K]: TSpec[K] extends 0 | 1 | boolean ? (K extends keyof TInput ? TInput[K] : unknown) : InferExprType<TInput, TSpec[K]> }
 	& DotNotationInclusionMerge<TInput, TSpec>;
 
 /**
@@ -272,9 +272,9 @@ export type ProjectOutput<TInput extends object, TSpec extends ProjectSpec<TInpu
 export type ProjectSpec<TInput extends object> = {
 	_id?: 0 | 1 | boolean
 } & {
-	[P in DotNotation<TInput>]?: 0 | 1 | boolean | (Expr<TInput> & (object | string))
+	[P in DotNotation<TInput>]?: boolean | (Expr<TInput> & object) | FieldRef<TInput> | number | (string & {})
 } & {
-	[field: string]: 0 | 1 | boolean | (Expr<TInput> & (object | string)) | undefined
+	[field: string]: boolean | (Expr<TInput> & object) | FieldRef<TInput> | number | (string & {}) | undefined
 };
 
 /** Spec for $setWindowFields */
@@ -310,6 +310,13 @@ export type UnwindOutput<TInput extends object, TField extends FieldRef<TInput>>
 			? Omit<TInput, K> & { [P in K]: NonNullable<TInput[K]> extends ReadonlyArray<infer U> ? U : TInput[K] }
 			: TInput
 		: TInput;
+
+/** @internal Validates that string values beginning with `$` are valid field references; other values pass through unchanged. */
+export type ValidateFieldRefs<TInput extends object, TSpec> = {
+	[K in keyof TSpec]: TSpec[K] extends `$${infer Path}`
+		? Path extends DotNotation<TInput> ? TSpec[K] : never
+		: TSpec[K]
+};
 
 /** Accumulator expression with an optional window specification, for use in `$setWindowFields`. */
 export type WindowAccumulatorExpr<TInput extends object> = AccumulatorExpr<TInput> & {
