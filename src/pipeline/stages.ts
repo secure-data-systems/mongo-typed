@@ -176,20 +176,6 @@ export type GroupSpec<TInput extends object> = {
 type HasInclusion<TSpec> =
 	[{ [K in Exclude<keyof TSpec, '_id'>]: TSpec[K] extends 0 | false | undefined ? never : true }[Exclude<keyof TSpec, '_id'>]] extends [never] ? false : true;
 
-/** @internal Fast path-existence check — validates a dot-notated path without resolving its type. */
-type IsValidPath<T, TPath extends string> =
-	TPath extends `${infer Key}.${infer Rest}`
-		? Key extends keyof NonNullable<T>
-			? IsValidPath<NonNullable<T>[Key], Rest>
-			: [NonNullable<T>] extends [readonly (infer U)[]]
-				? IsValidPath<U, TPath>
-				: false
-		: TPath extends keyof NonNullable<T>
-			? true
-			: [NonNullable<T>] extends [readonly (infer U)[]]
-				? TPath extends keyof NonNullable<U> ? true : false
-				: false;
-
 /** Spec for $lookup — equality join or pipeline join */
 export type LookupSpec<TInput extends object, TForeignSchema extends object, TAs extends string> =
 	| {
@@ -328,7 +314,7 @@ export type UnwindOutput<TInput extends object, TField extends FieldRef<TInput>>
 /** @internal Validates that string values beginning with `$` are valid field references; other values pass through unchanged. */
 export type ValidateFieldRefs<TInput extends object, TSpec> = {
 	[K in keyof TSpec]: TSpec[K] extends `$${infer Path}`
-		? IsValidPath<TInput, Path> extends true ? TSpec[K] : never
+		? Path extends DotNotation<TInput> ? TSpec[K] : never
 		: TSpec[K]
 };
 
