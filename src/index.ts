@@ -5,4 +5,5 @@ export * from './geo-json.js';
 export * from './identifiable.js';
 export * from './json-schema/index.js';
 export * from './pipeline/index.js';
+export { CollationOptions, FindBuilder, FindOptions, FindTerminal } from './query/index.js';
 export * from './update.js';
