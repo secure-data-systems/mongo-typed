@@ -10,8 +10,16 @@ import {
 // Options & configuration types
 // ---------------------------------------------------------------------------
 
-/** Enriches the builder return type with TTerminal methods. */
-type Chain<TInput extends object, TOutput extends object, TTerminal> = FindBuilder<TInput, TOutput, TTerminal> & TTerminal;
+/** After byId(), only select, hint, and terminal methods are available. */
+type ByIdResult<TInput extends object, TOutput extends object, TTerminal> = {
+	hint(hint: Record<string, -1 | 1> | string): ByIdResult<TInput, TOutput, TTerminal>,
+	select<TSpec extends ProjectSpec<TInput>>(
+		spec: ValidateFieldRefs<TInput, TSpec>
+	): ByIdResult<TInput, ProjectOutput<TInput, TSpec>, TTerminal>
+} & TTerminal;
+
+/** Enriches the builder return type with TTerminal methods. Strips byId to prevent mixing. */
+type Chain<TInput extends object, TOutput extends object, TTerminal> = Omit<FindBuilder<TInput, TOutput, TTerminal>, 'byId'> & TTerminal;
 
 export interface CollationOptions {
 	alternate?: 'non-ignorable' | 'shifted',
@@ -69,6 +77,10 @@ export class FindBuilder<TInput extends object, TOutput extends object = TInput,
 
 	constructor(options: FindOptions = {}) {
 		this.options = options;
+	}
+
+	byId(id: '_id' extends keyof TInput ? TInput['_id'] : unknown): ByIdResult<TInput, TOutput, TTerminal> {
+		return this.set({ filter: { _id: id } });
 	}
 
 	collation(spec: CollationOptions): Chain<TInput, TOutput, TTerminal> {

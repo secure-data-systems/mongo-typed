@@ -261,6 +261,96 @@ describe('FindBuilder', () => {
 	});
 
 	// -------------------------------------------------------------------------
+	// byId
+	// -------------------------------------------------------------------------
+
+	describe('byId', () => {
+		it('should set filter with _id', () => {
+			const opts = find<User>().byId('abc').build();
+			assert.deepEqual(opts.filter, { _id: 'abc' });
+		});
+
+		it('should allow select after byId', () => {
+			const opts = find<User>().byId('abc').select({ name: 1 }).build();
+			assert.deepEqual(opts.filter, { _id: 'abc' });
+			assert.deepEqual(opts.projection, { name: 1 });
+		});
+
+		it('should allow hint after byId', () => {
+			const opts = find<User>().byId('abc').hint('name_1').build();
+			assert.equal(opts.hint, 'name_1');
+		});
+
+		it('should allow select then hint after byId', () => {
+			const opts = find<User>()
+				.byId('abc')
+				.select({ email: 1, name: 1 })
+				.hint('name_1')
+				.build();
+			assert.deepEqual(opts.filter, { _id: 'abc' });
+			assert.deepEqual(opts.projection, { email: 1, name: 1 });
+			assert.equal(opts.hint, 'name_1');
+		});
+
+		it('should reject where after byId', () => {
+			// @ts-expect-error — where is not available after byId
+			find<User>().byId('abc').where({ active: true });
+		});
+
+		it('should reject sort after byId', () => {
+			// @ts-expect-error — sort is not available after byId
+			find<User>().byId('abc').sort({ name: 1 });
+		});
+
+		it('should reject limit after byId', () => {
+			// @ts-expect-error — limit is not available after byId
+			find<User>().byId('abc').limit(10);
+		});
+
+		it('should reject skip after byId', () => {
+			// @ts-expect-error — skip is not available after byId
+			find<User>().byId('abc').skip(5);
+		});
+
+		it('should reject collation after byId', () => {
+			// @ts-expect-error — collation is not available after byId
+			find<User>().byId('abc').collation({ locale: 'en' });
+		});
+
+		it('should reject byId after byId', () => {
+			// @ts-expect-error — byId is not available after byId
+			find<User>().byId('abc').byId('def');
+		});
+
+		it('should reject byId after where', () => {
+			// @ts-expect-error — byId is not available after where
+			find<User>().where({ active: true }).byId('abc');
+		});
+
+		it('should reject byId after select', () => {
+			// @ts-expect-error — byId is not available after select
+			find<User>().select({ name: 1 }).byId('abc');
+		});
+
+		it('should reject byId after sort', () => {
+			// @ts-expect-error — byId is not available after sort
+			find<User>().sort({ name: 1 }).byId('abc');
+		});
+
+		it('should reject byId after limit', () => {
+			// @ts-expect-error — byId is not available after limit
+			find<User>().limit(10).byId('abc');
+		});
+
+		it('should type-check _id when present in schema', () => {
+			interface Doc { _id: string, name: string }
+			find<Doc>().byId('valid');
+			// @ts-expect-error — _id is string, not number
+			find<Doc>().byId(123);
+		});
+	});
+
+	// -------------------------------------------------------------------------
 	// extensibility
 	// -------------------------------------------------------------------------
 
