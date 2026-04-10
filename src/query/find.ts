@@ -6,20 +6,8 @@ import {
 	ValidateFieldRefs
 } from '../pipeline/stages.js';
 
-// ---------------------------------------------------------------------------
-// Options & configuration types
-// ---------------------------------------------------------------------------
-
-/** After byId(), only select, hint, and terminal methods are available. */
-type ByIdResult<TInput extends object, TOutput extends object, TTerminal> = {
-	hint(hint: Record<string, -1 | 1> | string): ByIdResult<TInput, TOutput, TTerminal>,
-	select<TSpec extends ProjectSpec<TInput>>(
-		spec: ValidateFieldRefs<TInput, TSpec>
-	): ByIdResult<TInput, ProjectOutput<TInput, TSpec>, TTerminal>
-} & TTerminal;
-
-/** Enriches the builder return type with TTerminal methods. Strips byId to prevent mixing. */
-type Chain<TInput extends object, TOutput extends object, TTerminal> = Omit<FindBuilder<TInput, TOutput, TTerminal>, 'byId'> & TTerminal;
+/** Enriches the FindBuilder return type with TTerminal methods. */
+type Chain<TInput extends object, TOutput extends object, TTerminal> = FindBuilder<TInput, TOutput, TTerminal> & TTerminal;
 
 export interface CollationOptions {
 	alternate?: 'non-ignorable' | 'shifted',
@@ -42,17 +30,13 @@ export interface FindOptions {
 	sort?: object
 }
 
-// ---------------------------------------------------------------------------
-// Terminal interface
-// ---------------------------------------------------------------------------
-
-/** Terminal interface for {@link Find} — provides `build()`. */
+/** Terminal interface — provides `build()`. */
 export interface FindTerminal {
 	build: () => FindOptions
 }
 
 // ---------------------------------------------------------------------------
-// FindBuilder — fluent builder with schema tracking
+// FindBuilder — fluent builder for find queries with schema tracking
 // ---------------------------------------------------------------------------
 
 /**
@@ -60,27 +44,12 @@ export interface FindTerminal {
  *
  * Subclass and override `create()` plus terminal methods (`toArray`, `toStream`)
  * to connect to a real MongoDB collection.
- *
- * @example
- * ```ts
- * class MongoFind<TInput extends object, TOutput extends object = TInput>
- *   extends FindBuilder<TInput, TOutput, MyTerminal> {
- *   constructor(private collection: Collection, options?: FindOptions) { super(options); }
- *   protected override create<T extends object, U extends object>(options: FindOptions) {
- *     return new MongoFind<T, U>(this.collection as any, options);
- *   }
- * }
- * ```
  */
 export class FindBuilder<TInput extends object, TOutput extends object = TInput, TTerminal = object> {
 	protected readonly options: FindOptions;
 
 	constructor(options: FindOptions = {}) {
 		this.options = options;
-	}
-
-	byId(id: '_id' extends keyof TInput ? TInput['_id'] : unknown): ByIdResult<TInput, TOutput, TTerminal> {
-		return this.set({ filter: { _id: id } });
 	}
 
 	collation(spec: CollationOptions): Chain<TInput, TOutput, TTerminal> {

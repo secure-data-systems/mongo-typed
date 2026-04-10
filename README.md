@@ -13,6 +13,7 @@ Whether you're working with an actual MongoDB database or implementing similar p
 - Fully typed **filter** support (including `$and`, `$or`, `$in`, `$elemMatch`, etc.)
 - Strongly typed **update** operations (e.g., `$set`, `$inc`, `$unset`, etc.)
 - Fluent **aggregation pipeline** builder with schema tracking across stages
+- Fluent **find** and **findById** builders with type-safe projections
 - No dependencies — pure TypeScript
 - Helps catch invalid Mongo-like queries at compile time
 
@@ -92,6 +93,71 @@ const stages = pipeline<User>()
 
 Supported stages: `$addFields`, `$count`, `$facet`, `$group`, `$limit`, `$lookup`, `$match`, `$merge`, `$out`, `$project`, `$replaceRoot`, `$replaceWith`, `$sample`, `$set`, `$setWindowFields`, `$skip`, `$sort`, `$sortByCount`, `$unset`, `$unwind`.
 
+### Find Builder
+
+`FindBuilder` provides a fluent, type-safe interface for MongoDB find queries. It tracks the document schema through projections — `select()` reshapes the output type while `where()` and `sort()` validate against the input schema.
+
+```ts
+import { FindBuilder, FindOptions } from 'mongo-typed';
+
+type User = {
+  _id: string;
+  name: string;
+  email: string;
+  age: number;
+  active: boolean;
+};
+
+// Subclass to connect to your database
+class MyFind<TInput extends object, TOutput extends object = TInput>
+  extends FindBuilder<TInput, TOutput, MyFindTerminal> implements MyFindTerminal {
+  constructor(private collection: Collection, options?: FindOptions) { super(options); }
+  protected override create<T extends object, U extends object>(options: FindOptions) {
+    return new MyFind<T, U>(this.collection as any, options);
+  }
+  async toArray(): Promise<TOutput[]> {
+    return this.collection.find(this.options.filter ?? {}, this.options).toArray() as any;
+  }
+  build() { return { ...this.options }; }
+}
+```
+
+Available methods: `where`, `select`, `sort`, `limit`, `skip`, `collation`, `hint`.
+
+### FindById Builder
+
+`FindByIdBuilder` is a restricted builder for single-document lookups by `_id`. Only `select()` and `hint()` are available — no `where`, `sort`, `limit`, or `skip`.
+
+```ts
+import { FindByIdBuilder } from 'mongo-typed';
+
+// Subclass similarly to FindBuilder
+class MyFindById<TInput extends object, TOutput extends object = TInput>
+  extends FindByIdBuilder<TInput, TOutput, MyFindByIdTerminal> implements MyFindByIdTerminal {
+  constructor(private collection: Collection, options?: FindOptions) { super(options); }
+  protected override create<T extends object, U extends object>(options: FindOptions) {
+    return new MyFindById<T, U>(this.collection as any, options);
+  }
+  async toObject(): Promise<TOutput | null> {
+    return this.collection.findOne(this.options.filter ?? {}, this.options) as any;
+  }
+  build() { return { ...this.options }; }
+}
+
+// Usage in a repository
+class UserRepository {
+  find(filter?: Filter<User>) {
+    return new MyFind<User>(this.collection, filter ? { filter } : {});
+  }
+  findById(id: string) {
+    return new MyFindById<User>(this.collection, { filter: { _id: id } });
+  }
+}
+
+// repo.find({ active: true }).select({ name: 1, email: 1 }).sort({ name: 1 }).limit(10).toArray()
+// repo.findById('abc').select({ name: 1 }).toObject()
+```
+
 ### Update Pipeline
 
 MongoDB allows updates to use an aggregation pipeline instead of traditional operators. The `updatePipeline()` builder restricts the available stages to only the ones valid in updates: `$addFields`, `$set`, `$project`, `$unset`, `$replaceRoot`, `$replaceWith`.
@@ -134,6 +200,7 @@ class MyPipeline<T extends object> extends PipelineBuilder<T, MyTerminal> implem
 - Filter types — stable
 - Update types — stable
 - Aggregation pipeline — stable
+- Find / FindById builders — stable
 - Actively maintained
 
 ## Contributing
