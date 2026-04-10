@@ -3,8 +3,9 @@ import { describe, it } from 'node:test';
 
 import type { Assert, Equals, Includes, Not } from './types.js';
 
-import { Condition, Filter, NearFilter } from './filter.js';
+import { Condition, Filter, NearFilter, ObjFilter } from './filter.js';
 import { GeoJson, GeoJsonMultiPolygon, GeoJsonPoint, GeoJsonPolygon } from './geo-json.js';
+import { Identifiable } from './identifiable.js';
 
 interface Role {
 	bits: number[],
@@ -875,6 +876,47 @@ describe('Filter', () => {
 	describe('$expr', () => {
 		it('should accept $expr at the top-level filter with a valid aggregation expression', () => {
 			type T1 = Assert<Includes<Filter<User>, { $expr: { $gt: ['$age', 18] } }>>;
+		});
+	});
+
+	// -------------------------------------------------------------------------
+	// Generic variance
+	//
+	// When operators using recursive structural types (e.g. $arrayElemAt,
+	// TypedFieldRef) were added, they introduced structural checks that
+	// TypeScript could not reduce for generic type parameters, breaking
+	// assignability of ObjFilter in either direction. These tests pin the
+	// two real-world patterns that regressed so they can't silently break
+	// again.
+	// -------------------------------------------------------------------------
+	describe('generic variance', () => {
+		it('should allow ObjFilter<Identifiable> to be assigned where ObjFilter<T extends Identifiable> is expected', () => {
+			// Regression for pattern used in consumers like:
+			//   const conditions: Filter<Identifiable> = { _id: { $in: ids } };
+			//   repository.find({ where: conditions });
+			// where repository.find accepts `where?: ObjFilter<z.infer<T>>`.
+			function test<T extends Identifiable>(): ObjFilter<T> {
+				const wider: ObjFilter<Identifiable> = { _id: { $in: [] } };
+
+				return wider;
+			}
+		});
+
+		it('should allow overload with ObjFilter<T> to have an implementation signature using ObjFilter<Identifiable>', () => {
+			// Regression for overload-compat pattern used in consumers like:
+			//   function processWhere<T extends RepositorySchema>(
+			//     fields: RepositoryField<T>[], where: ObjFilter<z.infer<T>>
+			//   ): ...;
+			//   function processWhere<T extends RepositorySchema>(
+			//     fields: RepositoryField<T>[], where?: ObjFilter<Identifiable>
+			//   ) { ... }
+			// The implementation signature's ObjFilter<Identifiable> must accept
+			// the overload's ObjFilter<z.infer<T>>. TS2394 triggers if not.
+			function processWhere<T extends Identifiable>(where: ObjFilter<T>): void;
+			function processWhere<T extends Identifiable>(where?: ObjFilter<T>): undefined | void;
+			function processWhere<T extends Identifiable>(where?: ObjFilter<Identifiable>): undefined | void {
+				return undefined;
+			}
 		});
 	});
 });

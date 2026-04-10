@@ -88,7 +88,7 @@ export type Expr<T extends object> =
 
 export type FieldPaths<T extends object> = DotNotation<T> extends infer U ? U & string : never;
 
-export type FieldRef<T extends object> = `$${FieldPaths<T>}`;
+export type FieldRef<T extends object> = `$${FieldPaths<T>}` | (`$${string}` & {});
 
 /** Infers the output type of an expression value using the existing Expr category types.
  *  - `{ $literal: T }` → `T` (passthrough constant)
@@ -121,7 +121,7 @@ type InferFieldRef<TInput extends object, TKey extends string> =
 
 export type NumericExpr<TInput extends object> =
 	| number
-	| TypedFieldRef<TInput, number>
+	| NumericFieldRef<TInput>
 	| { $abs: NumericExpr<TInput> }
 	| { $acos: NumericExpr<TInput> }
 	| { $acosh: NumericExpr<TInput> }
@@ -182,6 +182,9 @@ export type NumericExpr<TInput extends object> =
 	| { $trunc: [NumericExpr<TInput>, NumericExpr<TInput>] | NumericExpr<TInput> }
 	| { $week: DateExpr<TInput> | DateTimezoneExpr<TInput> }
 	| { $year: DateExpr<TInput> | DateTimezoneExpr<TInput> };
+
+/** @internal Wildcard-widened numeric field ref — preserves autocomplete for numeric paths inside {@link NumericExpr} while keeping generic variance. */
+type NumericFieldRef<TInput extends object> = (`$${string}` & {}) | `$${TypedPaths<TInput, number>}`;
 
 export type ObjectExpr<TInput extends object> =
 	| { $getField: StringExpr<TInput> | { field: StringExpr<TInput>, input?: Expr<TInput> } }
