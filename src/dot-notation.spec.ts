@@ -93,6 +93,66 @@ describe('DotNotation', () => {
 
 		type T1 = Assert<Equals<T, 'createdAt'>>;
 	});
+
+	it('should halt at self-referential (recursive) types via cycle detection', () => {
+		interface Node {
+			child: Node,
+			name: string,
+			value: number
+		}
+		type T = DotNotation<Node>;
+
+		// Direct children are produced
+		type T1 = Assert<Includes<T, 'name'>>;
+		type T2 = Assert<Includes<T, 'value'>>;
+		type T3 = Assert<Includes<T, 'child'>>;
+		// One level deep into the recursive field still works
+		type T4 = Assert<Includes<T, 'child.name'>>;
+		type T5 = Assert<Includes<T, 'child.value'>>;
+		// The key path itself is still emitted once more, but no further recursion
+		type T6 = Assert<Includes<T, 'child.child'>>;
+		// Deeper recursion is blocked by cycle detection — this path should NOT exist
+		type T7 = Assert<Not<Includes<T, 'child.child.name'>>>;
+	});
+
+	it('should halt at mutually recursive types via cycle detection', () => {
+		interface A { b: B, name: string }
+		interface B { a: A, label: string }
+		type T = DotNotation<A>;
+
+		type T1 = Assert<Includes<T, 'name'>>;
+		type T2 = Assert<Includes<T, 'b'>>;
+		type T3 = Assert<Includes<T, 'b.label'>>;
+		type T4 = Assert<Includes<T, 'b.a'>>;
+		// A is re-entered once (child-tracking allows one re-entry), so inner fields of A expand
+		type T5 = Assert<Includes<T, 'b.a.name'>>;
+		type T6 = Assert<Includes<T, 'b.a.b'>>;
+		// But B is blocked on re-entry — so recursion into `b.a.b` stops here
+		type T7 = Assert<Not<Includes<T, 'b.a.b.label'>>>;
+	});
+
+	it('should not false-positive cycle on sibling fields sharing a type', () => {
+		interface Inner { value: number }
+		interface Outer { a: Inner, b: Inner }
+		type T = DotNotation<Outer>;
+
+		// Both siblings should fully recurse — sibling recursions are independent
+		type T1 = Assert<Includes<T, 'a.value'>>;
+		type T2 = Assert<Includes<T, 'b.value'>>;
+	});
+
+	it('should not false-positive cycle on structural subtypes', () => {
+		interface Base { x: number }
+		interface Extended { x: number, y: string }
+		interface Root { base: Base, ext: Extended }
+		type T = DotNotation<Root>;
+
+		// Extended is structurally-assignable to Base but semantically distinct;
+		// its extra fields must still be produced
+		type T1 = Assert<Includes<T, 'base.x'>>;
+		type T2 = Assert<Includes<T, 'ext.x'>>;
+		type T3 = Assert<Includes<T, 'ext.y'>>;
+	});
 });
 
 describe('DotPathValue', () => {

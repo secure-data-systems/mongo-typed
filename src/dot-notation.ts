@@ -7,22 +7,43 @@ export type DotNotation<
 	T extends object,
 	TAllowPlaceholder extends boolean = false,
 	TPrefix extends string = '',
-	TDepth extends number[] = []
+	TDepth extends number[] = [],
+	TVisited extends readonly object[] = []
 > =
 	TDepth['length'] extends 9
 		? never
 		: T extends readonly (infer U)[]
 			? (
 				| `${TPrefix}${number}`
-				| DotNotation<NonNullable<U> extends object ? NonNullable<U> : never, TAllowPlaceholder, `${TPrefix}${number}.`, [...TDepth, 1]>
-				| DotNotation<NonNullable<U> extends object ? NonNullable<U> : never, TAllowPlaceholder, `${TPrefix}`, [...TDepth, 1]>
+				| (NonNullable<U> extends object
+					? IsVisited<NonNullable<U>, TVisited> extends true
+						? never
+						: DotNotation<NonNullable<U>, TAllowPlaceholder, `${TPrefix}${number}.`, [...TDepth, 1], [...TVisited, NonNullable<U>]>
+					: never)
+				| (NonNullable<U> extends object
+					? IsVisited<NonNullable<U>, TVisited> extends true
+						? never
+						: DotNotation<NonNullable<U>, TAllowPlaceholder, `${TPrefix}`, [...TDepth, 1], [...TVisited, NonNullable<U>]>
+					: never)
 				| (TAllowPlaceholder extends true
 					? (
 						| `${TPrefix}$[${string}]`
 						| `${TPrefix}$`
-						| DotNotation<NonNullable<U> extends object ? NonNullable<U> : never, TAllowPlaceholder, `${TPrefix}$.`, [...TDepth, 1]>
-						| DotNotation<NonNullable<U> extends object ? NonNullable<U> : never, TAllowPlaceholder, `${TPrefix}$[${string}].`, [...TDepth, 1]>
-						| DotNotation<NonNullable<U> extends object ? NonNullable<U> : never, TAllowPlaceholder, `${TPrefix}$[].`, [...TDepth, 1]>
+						| (NonNullable<U> extends object
+							? IsVisited<NonNullable<U>, TVisited> extends true
+								? never
+								: DotNotation<NonNullable<U>, TAllowPlaceholder, `${TPrefix}$.`, [...TDepth, 1], [...TVisited, NonNullable<U>]>
+							: never)
+						| (NonNullable<U> extends object
+							? IsVisited<NonNullable<U>, TVisited> extends true
+								? never
+								: DotNotation<NonNullable<U>, TAllowPlaceholder, `${TPrefix}$[${string}].`, [...TDepth, 1], [...TVisited, NonNullable<U>]>
+							: never)
+						| (NonNullable<U> extends object
+							? IsVisited<NonNullable<U>, TVisited> extends true
+								? never
+								: DotNotation<NonNullable<U>, TAllowPlaceholder, `${TPrefix}$[].`, [...TDepth, 1], [...TVisited, NonNullable<U>]>
+							: never)
 					)
 					: never)
 			)
@@ -32,7 +53,11 @@ export type DotNotation<
 					? never
 					: (
 						| `${TPrefix}${K}`
-						| DotNotation<NonNullable<T[K]> extends object ? NonNullable<T[K]> : never, TAllowPlaceholder, `${TPrefix}${K}.`, [...TDepth, 1]>
+						| (NonNullable<T[K]> extends object
+							? IsVisited<NonNullable<T[K]>, TVisited> extends true
+								? never
+								: DotNotation<NonNullable<T[K]>, TAllowPlaceholder, `${TPrefix}${K}.`, [...TDepth, 1], [...TVisited, NonNullable<T[K]>]>
+							: never)
 					)
 			}[keyof T & string];
 
@@ -89,6 +114,21 @@ export type DotPathValue<
 						? And<TIsInArray, TCheckInArray, T[TPath][], T[TPath]>
 						: never
 					: never;
+
+/**
+ * @internal Checks if T is structurally equal to any type in the TVisited tuple.
+ * Uses mutual assignability ([T] extends [V] and [V] extends [T]) so structural subtypes
+ * (e.g. B = { x: number, y: string } extending A = { x: number }) do not trigger a
+ * false-positive cycle.
+ */
+type IsVisited<T, TVisited extends readonly unknown[]> =
+	TVisited extends readonly [infer First, ...infer Rest]
+		? [T] extends [First]
+			? [First] extends [T]
+				? true
+				: IsVisited<T, Rest>
+			: IsVisited<T, Rest>
+		: false;
 
 export type OnlyFieldsOfTypeDotNotation<
 	T extends object,
