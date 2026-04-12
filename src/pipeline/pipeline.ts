@@ -8,10 +8,10 @@ import {
 	GroupSpec,
 	LookupSpec,
 	MergeSpec,
+	ObjSort,
 	ProjectOutput,
 	ProjectSpec,
 	SetWindowFieldsSpec,
-	SortSpec,
 	UnwindOptions,
 	UnwindOutput,
 	ValidateFieldRefs
@@ -129,7 +129,7 @@ export class PipelineBuilder<TInput extends object, TTerminal = object> {
 		return this.push({ $skip: n });
 	}
 
-	sort(spec: SortSpec<TInput>): Chain<TInput, TTerminal> {
+	sort(spec: ObjSort<TInput>): Chain<TInput, TTerminal> {
 		return this.push({ $sort: spec });
 	}
 

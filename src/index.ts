@@ -6,4 +6,5 @@ export * from './identifiable.js';
 export * from './json-schema/index.js';
 export * from './pipeline/index.js';
 export { CollationOptions, FindBuilder, FindByIdBuilder, FindOptions, FindTerminal } from './query/index.js';
+export * from './sort.js';
 export * from './update.js';

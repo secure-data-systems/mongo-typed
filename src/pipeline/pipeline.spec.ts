@@ -8,7 +8,6 @@ import type {
 	GroupOutput,
 	PipelineStage,
 	ProjectOutput,
-	SortSpec,
 	UnwindOutput,
 	ValidateFieldRefs
 } from './stages.js';
@@ -110,20 +109,6 @@ describe('AccumulatorExpr', () => {
 		it('should include $bottom accumulator', () => {
 			type T1 = Assert<Includes<AccumulatorExpr<User>, { $bottom: { output: '$name', sortBy: { score: 1 } } }>>;
 		});
-	});
-});
-
-// ---------------------------------------------------------------------------
-// SortSpec
-// ---------------------------------------------------------------------------
-
-describe('SortSpec', () => {
-	it('should accept valid field paths with direction', () => {
-		type T1 = Assert<Includes<SortSpec<User>, { name?: -1 | 1 | { $meta: string } }>>;
-	});
-
-	it('should accept nested dot-notation fields', () => {
-		type T1 = Assert<Includes<SortSpec<User>, { 'address.city'?: -1 | 1 | { $meta: string } }>>;
 	});
 });
 
