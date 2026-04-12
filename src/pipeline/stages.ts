@@ -2,6 +2,9 @@ import { DotNotation } from '../dot-notation.js';
 import { Expr, FieldRef, InferExprType, NumericExpr } from '../expr.js';
 import { Filter } from '../filter.js';
 import { GeoJsonPoint } from '../geo-json.js';
+import { ObjSort } from '../sort.js';
+
+export { ObjSort } from '../sort.js';
 
 // ---------------------------------------------------------------------------
 // Accumulator expressions (valid in $group, $bucket, $bucketAuto, $setWindowFields)
@@ -84,7 +87,7 @@ export interface FillSpec<TInput extends object> {
 	},
 	partitionBy?: Record<string, Expr<TInput>>,
 	partitionByFields?: DotNotation<TInput>[],
-	sortBy?: SortSpec<TInput>
+	sortBy?: ObjSort<TInput>
 }
 
 /** Spec for $geoNear */
@@ -239,7 +242,7 @@ export type PipelineStage<TInput extends object> =
 	| { $set: AddFieldsSpec<TInput> }
 	| { $setWindowFields: SetWindowFieldsSpec<TInput> }
 	| { $skip: number }
-	| { $sort: SortSpec<TInput> }
+	| { $sort: ObjSort<TInput> }
 	| { $sortByCount: Expr<TInput> }
 	| { $unionWith: string | { coll: string, pipeline?: PipelineStage<any>[] } }
 	| { $unset: DotNotation<TInput> | DotNotation<TInput>[] }
@@ -281,13 +284,8 @@ export type ProjectSpec<TInput extends object> = {
 export interface SetWindowFieldsSpec<TInput extends object> {
 	output: Record<string, WindowAccumulatorExpr<TInput>>,
 	partitionBy?: Expr<TInput>,
-	sortBy?: SortSpec<TInput>
+	sortBy?: ObjSort<TInput>
 }
-
-/** Sort specification: field paths mapped to sort direction or $meta */
-export type SortSpec<TInput extends object> = {
-	[K in DotNotation<TInput>]?: -1 | 1 | { $meta: string }
-};
 
 /** @internal Converts a union type to an intersection type. Used to merge nested projection paths. */
 type UnionToIntersection<U> =

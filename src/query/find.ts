@@ -2,9 +2,9 @@ import { Filter } from '../filter.js';
 import {
 	ProjectOutput,
 	ProjectSpec,
-	SortSpec,
 	ValidateFieldRefs
 } from '../pipeline/stages.js';
+import { ObjSort } from '../sort.js';
 
 /** Enriches the FindBuilder return type with TTerminal methods. */
 type Chain<TInput extends object, TOutput extends object, TTerminal> = FindBuilder<TInput, TOutput, TTerminal> & TTerminal;
@@ -81,7 +81,7 @@ export class FindBuilder<TInput extends object, TOutput extends object = TInput,
 		return this.set({ skip: n });
 	}
 
-	sort(spec: SortSpec<TInput>): Chain<TInput, TOutput, TTerminal> {
+	sort(spec: ObjSort<TInput>): Chain<TInput, TOutput, TTerminal> {
 		return this.set({ sort: spec });
 	}
 
