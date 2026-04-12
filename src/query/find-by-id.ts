@@ -3,7 +3,6 @@ import {
 	ProjectSpec,
 	ValidateFieldRefs
 } from '../pipeline/stages.js';
-
 import { FindOptions } from './find.js';
 
 /** Enriches the FindByIdBuilder return type with TTerminal methods. */

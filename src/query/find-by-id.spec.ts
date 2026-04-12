@@ -4,9 +4,9 @@ import { describe, it } from 'node:test';
 
 import type { ProjectOutput } from '../pipeline/stages.js';
 import type { Assert, Equals } from '../types.js';
+import type { FindOptions, FindTerminal } from './find.js';
 
 import { FindByIdBuilder } from './find-by-id.js';
-import type { FindOptions, FindTerminal } from './find.js';
 
 interface Address {
 	city: string,
