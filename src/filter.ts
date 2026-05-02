@@ -18,7 +18,9 @@ export declare type AlternativeTypes<T, TPartial extends boolean = false> =
 
 export declare type BitwiseFilter = number /** BinData bit mask */ | ReadonlyArray<number>;
 
-export declare type Condition<T, TPartial extends boolean = false> = AlternativeTypes<T, TPartial> | FilterOperators<T>;
+export declare type Condition<T, TPartial extends boolean = false> =
+	AlternativeTypes<T, TPartial> | FilterOperators<T>
+	| (NonNullable<T> extends ReadonlyArray<infer U> ? AlternativeTypes<U, TPartial> : never);
 
 export declare interface Document {
 	[key: string]: any
@@ -35,7 +37,7 @@ export declare interface FilterOperators<TValue> {
 	$bitsAnyClear?: TValue extends IntegerType ? BitwiseFilter : never,
 	$bitsAnySet?: TValue extends IntegerType ? BitwiseFilter : never,
 	$elemMatch?: TValue extends ReadonlyArray<infer U> ? Filter<U> : never,
-	$eq?: TValue,
+	$eq?: NonNullable<TValue> extends ReadonlyArray<infer U> ? TValue | U : TValue,
 	/**
 	 * When `true`, `$exists` matches the documents that contain the field,
 	 * including documents where the field value is null.
