@@ -203,6 +203,16 @@ describe('Filter', () => {
 			type T11 = Assert<Not<Includes<ActualNumber, User['address']>>>;
 		});
 
+		it('should allow $eq with element value on array fields', () => {
+			type ActualStringArray = Filter<User>['tags'];
+			type ActualObjectArray = Filter<User>['roles'];
+
+			type T1 = Assert<Includes<ActualStringArray, { $eq: string }>>;
+			type T2 = Assert<Includes<ActualObjectArray, { $eq: Role }>>;
+			type T3 = Assert<Includes<ActualStringArray, { $eq: string[] }>>;
+			type T4 = Assert<Includes<ActualObjectArray, { $eq: Role[] }>>;
+		});
+
 		it('should allow $eq operator for all fields', () => {
 			type ActualString = Filter<User>['name'];
 			type ActualNumber = Filter<User>['age'];
@@ -876,6 +886,36 @@ describe('Filter', () => {
 	describe('$expr', () => {
 		it('should accept $expr at the top-level filter with a valid aggregation expression', () => {
 			type T1 = Assert<Includes<Filter<User>, { $expr: { $gt: ['$age', 18] } }>>;
+		});
+	});
+
+	describe('implicit array element matching', () => {
+		it('should allow bare element value on string array fields', () => {
+			type ActualStringArray = Filter<User>['tags'];
+
+			type T1 = Assert<Includes<ActualStringArray, string>>;
+		});
+
+		it('should allow bare element value on object array fields', () => {
+			type ActualObjectArray = Filter<User>['roles'];
+
+			type T1 = Assert<Includes<ActualObjectArray, Role>>;
+		});
+
+		it('should still allow full array value on array fields', () => {
+			type ActualStringArray = Filter<User>['tags'];
+			type ActualObjectArray = Filter<User>['roles'];
+
+			type T1 = Assert<Includes<ActualStringArray, string[]>>;
+			type T2 = Assert<Includes<ActualObjectArray, Role[]>>;
+		});
+
+		it('should NOT allow wrong element type on array fields', () => {
+			type ActualStringArray = Filter<User>['tags'];
+			type ActualObjectArray = Filter<User>['roles'];
+
+			type T1 = Assert<Not<Includes<ActualStringArray, number>>>;
+			type T2 = Assert<Not<Includes<ActualObjectArray, string>>>;
 		});
 	});
 
